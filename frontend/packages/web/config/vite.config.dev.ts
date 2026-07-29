@@ -15,6 +15,9 @@ export default mergeConfig(
   {
     mode: 'development',
     server: {
+      host: true,
+      port: 5174,
+      strictPort: true,
       allowedHosts,
       open: true,
       fs: {

@@ -20,6 +20,7 @@ import cn.cordys.common.util.JSON;
 import cn.cordys.common.util.TimeUtils;
 import cn.cordys.common.util.Translator;
 import cn.cordys.crm.clue.constants.ClueStatus;
+import cn.cordys.crm.clue.constants.CluePoolAssignConstants;
 import cn.cordys.crm.clue.domain.*;
 import cn.cordys.crm.clue.dto.CluePoolDTO;
 import cn.cordys.crm.clue.dto.CluePoolPickRuleDTO;
@@ -56,6 +57,8 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
@@ -165,8 +168,14 @@ public class PoolClueService {
 
         pools.forEach(pool -> {
             List<String> scopeIds = userExtendService.getScopeOwnerIds(JSON.parseArray(pool.getScopeId(), String.class), currentOrgId);
-            List<String> ownerIds = userExtendService.getScopeOwnerIds(JSON.parseArray(pool.getOwnerId(), String.class), currentOrgId);
-            if (scopeIds.contains(currentUser) || ownerIds.contains(currentUser) || Strings.CS.equals(currentUser, InternalUser.ADMIN.getValue())) {
+            Set<String> adminIds = getPoolAdminIds(pool, currentOrgId);
+            boolean isAdmin = adminIds.contains(currentUser) || Strings.CS.equals(currentUser, InternalUser.ADMIN.getValue());
+            // 成员不可见模式(ADMIN_ASSIGN_ONLY):仅管理员和系统管理员可见,普通成员不可见
+            boolean poolVisible = isAdmin || scopeIds.contains(currentUser);
+            if (Strings.CS.equals(pool.getPickMode(), CluePoolAssignConstants.PICK_MODE_ADMIN_ASSIGN_ONLY) && !isAdmin) {
+                poolVisible = false;
+            }
+            if (poolVisible) {
                 CluePoolDTO poolDTO = new CluePoolDTO();
                 BeanUtils.copyBean(poolDTO, pool);
                 poolDTO.setMembers(userExtendService.getScope(JSON.parseArray(pool.getScopeId(), String.class)));
@@ -188,7 +197,7 @@ public class PoolClueService {
 
                 poolDTO.setPickRule(pickRule);
                 poolDTO.setRecycleRule(recycleRule);
-                poolDTO.setEditable(ownerIds.contains(currentUser));
+                poolDTO.setEditable(isAdmin);
 
                 Set<String> hiddenFieldIds;
                 if (hiddenFieldMap.get(pool.getId()) != null) {
@@ -214,13 +223,20 @@ public class PoolClueService {
      * @param currentOrgId 当前组织ID
      */
     public void pick(PoolCluePickRequest request, String currentUser, String currentOrgId) {
-        CluePool pool = poolMapper.selectByPrimaryKey(request.getPoolId());
+        CluePool pool = getPoolForOperation(request.getPoolId(), currentOrgId);
+        validateClueBelongsToPool(request.getClueId(), pool.getId(), currentOrgId);
+        boolean poolAdmin = isPoolAdmin(pool, currentUser, currentOrgId);
+        // 成员不可见模式:仅管理员可分配,普通成员不可领取
+        if (Strings.CS.equals(pool.getPickMode(), CluePoolAssignConstants.PICK_MODE_ADMIN_ASSIGN_ONLY)) {
+            if (!poolAdmin && !Strings.CS.equals(currentUser, InternalUser.ADMIN.getValue())) {
+                throw new GenericException(Translator.get("clue_pool.admin_assign_only"));
+            }
+        }
         validateCapacity(1, currentUser, currentOrgId);
         LambdaQueryWrapper<CluePoolPickRule> pickRuleWrapper = new LambdaQueryWrapper<>();
         pickRuleWrapper.eq(CluePoolPickRule::getPoolId, request.getPoolId());
         List<CluePoolPickRule> cluePoolPickRules = pickRuleMapper.selectListByLambda(pickRuleWrapper);
         CluePoolPickRule pickRule = cluePoolPickRules.getFirst();
-        boolean poolAdmin = userExtendService.isPoolAdmin(JSON.parseArray(pool.getOwnerId(), String.class), currentUser, currentOrgId);
         if (!poolAdmin) {
             validateDailyPickNum(1, currentUser, pickRule);
         }
@@ -263,13 +279,21 @@ public class PoolClueService {
      * @param currentOrgId 当前组织ID
      */
     public void batchPick(PoolBatchPickRequest request, String currentUser, String currentOrgId) {
-        CluePool pool = poolMapper.selectByPrimaryKey(request.getPoolId());
+        CluePool pool = getPoolForOperation(request.getPoolId(), currentOrgId);
+        request.getBatchIds().forEach(clueId ->
+                validateClueBelongsToPool(clueId, pool.getId(), currentOrgId));
+        boolean poolAdmin = isPoolAdmin(pool, currentUser, currentOrgId);
+        // 成员不可见模式:仅管理员可分配,普通成员不可领取
+        if (Strings.CS.equals(pool.getPickMode(), CluePoolAssignConstants.PICK_MODE_ADMIN_ASSIGN_ONLY)) {
+            if (!poolAdmin && !Strings.CS.equals(currentUser, InternalUser.ADMIN.getValue())) {
+                throw new GenericException(Translator.get("clue_pool.admin_assign_only"));
+            }
+        }
         validateCapacity(request.getBatchIds().size(), currentUser, currentOrgId);
         LambdaQueryWrapper<CluePoolPickRule> pickRuleWrapper = new LambdaQueryWrapper<>();
         pickRuleWrapper.eq(CluePoolPickRule::getPoolId, request.getPoolId());
         List<CluePoolPickRule> cluePoolPickRules = pickRuleMapper.selectListByLambda(pickRuleWrapper);
         CluePoolPickRule pickRule = cluePoolPickRules.getFirst();
-        boolean poolAdmin = userExtendService.isPoolAdmin(JSON.parseArray(pool.getOwnerId(), String.class), currentUser, currentOrgId);
         if (!poolAdmin) {
             validateDailyPickNum(request.getBatchIds().size(), currentUser, pickRule);
         }
@@ -365,7 +389,7 @@ public class PoolClueService {
      */
     private void ownClue(String clueId, String ownerId, CluePoolPickRule pickRule, String operateUserId, String logType, String currentOrgId, boolean isPoolAdmin) {
         Clue clue = clueMapper.selectByPrimaryKey(clueId);
-        if (clue == null) {
+        if (clue == null || !Strings.CS.equals(clue.getOrganizationId(), currentOrgId)) {
             throw new IllegalArgumentException(Translator.get("clue.not.exist"));
         }
         if (!clue.getInSharedPool()) {
@@ -415,6 +439,41 @@ public class PoolClueService {
         }
     }
 
+    private CluePool getPoolForOperation(String poolId, String orgId) {
+        CluePool pool = poolMapper.selectByPrimaryKey(poolId);
+        if (pool == null || !Strings.CS.equals(pool.getOrganizationId(), orgId) || !BooleanUtils.isTrue(pool.getEnable())) {
+            throw new GenericException(Translator.get("clue_pool_not_exist"));
+        }
+        return pool;
+    }
+
+    private void validateClueBelongsToPool(String clueId, String poolId, String orgId) {
+        Clue clue = clueMapper.selectByPrimaryKey(clueId);
+        if (clue == null || !Strings.CS.equals(clue.getOrganizationId(), orgId)) {
+            throw new GenericException(Translator.get("clue.not.exist"));
+        }
+        if (!BooleanUtils.isTrue(clue.getInSharedPool()) || !Strings.CS.equals(clue.getPoolId(), poolId)) {
+            throw new GenericException(Translator.get("clue_pool.clue_mismatch"));
+        }
+    }
+
+    private boolean isPoolAdmin(CluePool pool, String userId, String orgId) {
+        return getPoolAdminIds(pool, orgId).contains(userId)
+                || Strings.CS.equals(userId, InternalUser.ADMIN.getValue());
+    }
+
+    private Set<String> getPoolAdminIds(CluePool pool, String orgId) {
+        Set<String> adminIds = new HashSet<>();
+        if (StringUtils.isNotBlank(pool.getOwnerId())) {
+            adminIds.addAll(userExtendService.getScopeOwnerIds(
+                    JSON.parseArray(pool.getOwnerId(), String.class), orgId));
+        }
+        if (StringUtils.isNotBlank(pool.getCollaboratorId())) {
+            adminIds.addAll(userExtendService.getScopeOwnerIds(
+                    JSON.parseArray(pool.getCollaboratorId(), String.class), orgId));
+        }
+        return adminIds;
+    }
     /**
      * 校验当前用户是否为线索池成员（成员或管理员均可访问）
      *
@@ -424,11 +483,11 @@ public class PoolClueService {
      */
     public void checkPoolMember(String poolId, String userId, String orgId) {
         CluePool pool = poolMapper.selectByPrimaryKey(poolId);
-        if (pool == null) {
+        if (pool == null || !Strings.CS.equals(pool.getOrganizationId(), orgId)) {
             throw new GenericException(Translator.get("clue_pool_not_exist"));
         }
         List<String> scopeIds = userExtendService.getScopeOwnerIds(JSON.parseArray(pool.getScopeId(), String.class), orgId);
-        List<String> ownerIds = userExtendService.getScopeOwnerIds(JSON.parseArray(pool.getOwnerId(), String.class), orgId);
+        Set<String> ownerIds = getPoolAdminIds(pool, orgId);
         if (!scopeIds.contains(userId) && !ownerIds.contains(userId) && !Strings.CS.equals(userId, InternalUser.ADMIN.getValue())) {
             throw new GenericException(Translator.get("clue_pool_member_access_fail"));
         }

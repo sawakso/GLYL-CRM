@@ -59,6 +59,13 @@
             <template #member>
               <memberTab v-if="activeRole" :active-role-id="selectedKeys[0]" />
             </template>
+            <template #fieldDesensitization>
+              <fieldDesensitizationTab
+                v-if="activeRole"
+                :active-role-id="selectedKeys[0]"
+                :is-new="!!activeRole.isNew"
+              />
+            </template>
           </CrmTab>
         </div>
       </template>
@@ -82,6 +89,7 @@
   import CrmTree from '@/components/pure/crm-tree/index.vue';
   import { CrmTreeNodeData } from '@/components/pure/crm-tree/type';
   import roleTreeNodePrefix from '@/components/business/crm-select-user-drawer/roleTreeNodePrefix.vue';
+  import fieldDesensitizationTab from './components/fieldDesensitizationTab.vue';
   import memberTab from './components/memberTab.vue';
   import permissionTab from './components/permissionTab.vue';
 
@@ -270,6 +278,10 @@
       {
         name: 'member',
         tab: t('role.member'),
+      },
+      {
+        name: 'fieldDesensitization',
+        tab: t('role.fieldDesensitization'),
       },
     ];
   });

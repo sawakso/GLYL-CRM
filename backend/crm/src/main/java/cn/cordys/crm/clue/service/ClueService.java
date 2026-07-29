@@ -8,6 +8,7 @@ import cn.cordys.aspectj.dto.LogContextInfo;
 import cn.cordys.aspectj.dto.LogDTO;
 import cn.cordys.common.constants.BusinessModuleField;
 import cn.cordys.common.constants.FormKey;
+import cn.cordys.common.constants.InternalUser;
 import cn.cordys.common.constants.LinkScenarioKey;
 import cn.cordys.common.constants.PermissionConstants;
 import cn.cordys.common.domain.BaseModuleFieldValue;
@@ -79,6 +80,7 @@ import cn.cordys.crm.system.service.DictService;
 import cn.cordys.crm.system.service.LogService;
 import cn.cordys.crm.system.service.ModuleFormCacheService;
 import cn.cordys.crm.system.service.ModuleFormService;
+import cn.cordys.crm.system.service.UserExtendService;
 import cn.cordys.excel.utils.EasyExcelExporter;
 import cn.cordys.mybatis.BaseMapper;
 import cn.cordys.mybatis.lambda.LambdaQueryWrapper;
@@ -191,6 +193,10 @@ public class ClueService {
     private BaseMapper<FollowUpPlanFieldBlob> followUpPlanFieldBlobMapper;
     @Resource
     private SqlSessionFactory sqlSessionFactory;
+    @Resource
+    private CluePoolAssignRuleService cluePoolAssignRuleService;
+    @Resource
+    private UserExtendService userExtendService;
 
     public PagerWithOption<List<ClueListResponse>> list(CluePageRequest request, String userId, String orgId,
                                                         DeptDataPermissionDTO deptDataPermission, Boolean source) {
@@ -467,7 +473,11 @@ public class ClueService {
     public Clue update(ClueUpdateRequest request, String userId, String orgId) {
         productService.checkProductList(request.getProducts());
         Clue originClue = clueMapper.selectByPrimaryKey(request.getId());
+        if (originClue == null || !Strings.CS.equals(originClue.getOrganizationId(), orgId)) {
+            throw new GenericException(Translator.get("clue.not.exist"));
+        }
         if (!Strings.CS.equals(originClue.getOwner(), request.getOwner())) {
+            validatePickedClueTransferRules(List.of(originClue), request.getOwner(), orgId);
             poolClueService.validateCapacity(1, request.getOwner(), orgId);
         }
 
@@ -602,7 +612,9 @@ public class ClueService {
     }
 
     public void batchTransfer(ClueBatchTransferRequest request, String userId, String orgId) {
-        List<Clue> clues = clueMapper.selectByIds(request.getIds());
+        List<Clue> clues = getCluesInOrganization(request.getIds(), orgId);
+        validatePickedClueTransferRules(clues, request.getOwner(), orgId);
+        request.setIds(clues.stream().map(Clue::getId).toList());
         long processCount = clues.stream().filter(clue -> !Strings.CS.equals(clue.getOwner(), request.getOwner())).count();
         poolClueService.validateCapacity((int) processCount, request.getOwner(), orgId);
 
@@ -652,7 +664,114 @@ public class ClueService {
         return clues.stream()
                 .map(Clue::getOwner)
                 .distinct()
+                .filter(StringUtils::isNotBlank)
                 .toList();
+    }
+
+    /**
+     * 加载本组织内待操作的线索，并拒绝包含不存在或跨组织 ID 的请求。
+     */
+    private List<Clue> getCluesInOrganization(List<String> ids, String orgId) {
+        if (CollectionUtils.isEmpty(ids)) {
+            throw new GenericException(Translator.get("clue.not.exist"));
+        }
+        List<String> distinctIds = ids.stream().filter(StringUtils::isNotBlank).distinct().toList();
+        LambdaQueryWrapper<Clue> wrapper = new LambdaQueryWrapper<>();
+        if (CollectionUtils.isEmpty(distinctIds)) {
+            throw new GenericException(Translator.get("clue.not.exist"));
+        }
+        wrapper.in(Clue::getId, distinctIds).eq(Clue::getOrganizationId, orgId);
+        List<Clue> clues = clueMapper.selectListByLambda(wrapper);
+        if (distinctIds.size() != clues.size()) {
+            throw new GenericException(Translator.get("clue.not.exist"));
+        }
+        return clues;
+    }
+
+    /**
+     * 校验从线索池领取后的负责人转移规则。
+     */
+    private void validatePickedClueTransferRules(List<Clue> clues, String targetOwnerId, String orgId) {
+        if (StringUtils.isBlank(targetOwnerId)) {
+            throw new GenericException(Translator.get("clue_pool.transfer_target_required"));
+        }
+        List<Clue> changedClues = clues.stream()
+                .filter(clue -> !BooleanUtils.isTrue(clue.getInSharedPool()))
+                .filter(clue -> StringUtils.isNotBlank(clue.getSourcePoolId()))
+                .filter(clue -> !Strings.CS.equals(clue.getOwner(), targetOwnerId))
+                .toList();
+        if (CollectionUtils.isEmpty(changedClues)) {
+            return;
+        }
+
+        Map<String, CluePool> sourcePoolMap = getSourcePoolMap(changedClues, orgId);
+        Map<String, Set<String>> poolMemberMap = new HashMap<>();
+        for (Clue clue : changedClues) {
+            CluePool sourcePool = sourcePoolMap.get(clue.getSourcePoolId());
+            if (sourcePool == null) {
+                throw new GenericException(Translator.get("clue_pool_not_exist"));
+            }
+            if (!BooleanUtils.isTrue(sourcePool.getAllowTransferAfterPick())) {
+                throw new GenericException(Translator.get("clue_pool.transfer_after_pick_disabled"));
+            }
+            if (BooleanUtils.isTrue(sourcePool.getRestrictTransferInToMembers())) {
+                Set<String> memberIds = poolMemberMap.computeIfAbsent(sourcePool.getId(),
+                        key -> getPoolMemberIds(sourcePool, orgId));
+                if (!memberIds.contains(targetOwnerId)) {
+                    throw new GenericException(Translator.get("clue_pool.transfer_target_not_member"));
+                }
+            }
+        }
+    }
+
+    /**
+     * 校验线索退回来源线索池的成员限制。
+     */
+    private void validatePickedClueReturnRules(List<Clue> clues, String currentUser, String orgId) {
+        List<Clue> sourcedClues = clues.stream()
+                .filter(clue -> StringUtils.isNotBlank(clue.getSourcePoolId()))
+                .toList();
+        if (CollectionUtils.isEmpty(sourcedClues)) {
+            return;
+        }
+        Map<String, CluePool> sourcePoolMap = getSourcePoolMap(sourcedClues, orgId);
+        Map<String, Set<String>> poolMemberMap = new HashMap<>();
+        for (Clue clue : sourcedClues) {
+            CluePool sourcePool = sourcePoolMap.get(clue.getSourcePoolId());
+            if (sourcePool == null) {
+                throw new GenericException(Translator.get("clue_pool_not_exist"));
+            }
+            if (BooleanUtils.isTrue(sourcePool.getRestrictReturnToMembers())) {
+                Set<String> memberIds = poolMemberMap.computeIfAbsent(sourcePool.getId(),
+                        key -> getPoolMemberIds(sourcePool, orgId));
+                if (!memberIds.contains(currentUser)) {
+                    throw new GenericException(Translator.get("clue_pool.return_operator_not_member"));
+                }
+            }
+        }
+    }
+
+    private Map<String, CluePool> getSourcePoolMap(List<Clue> clues, String orgId) {
+        List<String> sourcePoolIds = clues.stream()
+                .map(Clue::getSourcePoolId)
+                .filter(StringUtils::isNotBlank)
+                .distinct()
+                .toList();
+        if (CollectionUtils.isEmpty(sourcePoolIds)) {
+            return Map.of();
+        }
+        LambdaQueryWrapper<CluePool> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(CluePool::getId, sourcePoolIds).eq(CluePool::getOrganizationId, orgId);
+        return cluePoolMapper.selectListByLambda(wrapper).stream()
+                .collect(Collectors.toMap(CluePool::getId, Function.identity()));
+    }
+
+    private Set<String> getPoolMemberIds(CluePool pool, String orgId) {
+        if (StringUtils.isBlank(pool.getScopeId())) {
+            return Set.of();
+        }
+        return new HashSet<>(userExtendService.getScopeOwnerIds(
+                JSON.parseArray(pool.getScopeId(), String.class), orgId));
     }
 
     /**
@@ -664,7 +783,7 @@ public class ClueService {
      */
     public BatchAffectResponse batchToPool(BatchPoolReasonRequest request, String currentUser, String orgId) {
         LambdaQueryWrapper<Clue> wrapper = new LambdaQueryWrapper<>();
-        wrapper.in(Clue::getId, request.getIds());
+        wrapper.in(Clue::getId, request.getIds()).eq(Clue::getOrganizationId, orgId);
         List<Clue> clues = clueMapper.selectListByLambda(wrapper);
         clues = clues.stream()
                 .filter(clue -> !BooleanUtils.isTrue(clue.getInSharedPool()))
@@ -673,6 +792,7 @@ public class ClueService {
             return BatchAffectResponse.builder().success(0).fail(request.getIds().size()).build();
         }
 
+        validatePickedClueReturnRules(clues, currentUser, orgId);
         CluePool targetPool = null;
         Map<String, CluePool> ownersDefaultPoolMap = new HashMap<>(4);
         if (StringUtils.isNotBlank(request.getPoolId())) {
@@ -703,11 +823,39 @@ public class ClueService {
             clueOwnerHistoryService.add(clue, currentUser, true);
             clue.setPoolId(cluePool.getId());
             clue.setInSharedPool(true);
-            clue.setOwner(null);
-            clue.setCollectionTime(null);
+            if (BooleanUtils.isTrue(cluePool.getClearOwnerOnPoolTransfer())) {
+                clue.setOwner(null);
+                clue.setCollectionTime(null);
+            }
             clue.setUpdateUser(currentUser);
             clue.setUpdateTime(System.currentTimeMillis());
             extClueMapper.moveToPool(clue);
+
+            // 触发自动分配:匹配分配规则并自动分配给目标人员
+            boolean autoAssigned = false;
+            try {
+                autoAssigned = cluePoolAssignRuleService.matchAndAssign(
+                        clue.getId(), cluePool.getId(), orgId, InternalUser.ADMIN.getValue());
+            } catch (Exception e) {
+                // 自动分配异常不影响移入操作,线索留在池中
+            }
+
+            // 未自动分配且开启了新线索提醒 → 给池管理员推送待办
+            if (!autoAssigned && BooleanUtils.isTrue(cluePool.getNewLeadRemind())) {
+                Set<String> adminIdSet = new LinkedHashSet<>(userExtendService.getScopeOwnerIds(
+                        JSON.parseArray(cluePool.getOwnerId(), String.class), orgId));
+                if (StringUtils.isNotBlank(cluePool.getCollaboratorId())) {
+                    adminIdSet.addAll(userExtendService.getScopeOwnerIds(
+                            JSON.parseArray(cluePool.getCollaboratorId(), String.class), orgId));
+                }
+                List<String> adminIds = new ArrayList<>(adminIdSet);
+                if (CollectionUtils.isNotEmpty(adminIds)) {
+                    commonNoticeSendService.sendNotice(NotificationConstants.Module.CLUE,
+                            NotificationConstants.Event.CLUE_POOL_NEW_LEAD_REMIND, clue.getName(),
+                            InternalUser.ADMIN.getValue(), orgId, adminIds, true);
+                }
+            }
+
             success++;
         }
         logService.batchAdd(logs);

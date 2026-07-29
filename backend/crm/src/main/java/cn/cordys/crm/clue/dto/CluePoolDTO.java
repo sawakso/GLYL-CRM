@@ -14,6 +14,8 @@ public class CluePoolDTO extends CluePool {
     private List<ScopeNameDTO> members;
     @Schema(description = "管理员集合")
     private List<ScopeNameDTO> owners;
+    @Schema(description = "协同管理员集合")
+    private List<ScopeNameDTO> collaborators;
     @Schema(description = "创建人名称")
     private String createUserName;
     @Schema(description = "更新人名称")
@@ -22,8 +24,12 @@ public class CluePoolDTO extends CluePool {
     private CluePoolPickRuleDTO pickRule;
     @Schema(description = "回收规则")
     private CluePoolRecycleRuleDTO recycleRule;
+    @Schema(description = "分配规则集合")
+    private List<CluePoolAssignRuleDTO> assignRules;
     @Schema(description = "字段配置")
     private List<CluePoolFieldConfigDTO> fieldConfigs;
+    @Schema(description = "当前线索数量")
+    private Integer currentClueCount;
 
     @Schema(description = "是否可编辑")
     private Boolean editable;

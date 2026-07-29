@@ -11,6 +11,9 @@ public class CluePool extends BaseModel {
 
     @Schema(description = "线索池名称")
     private String name;
+    @Schema(description = "线索池描述")
+    private String description;
+
 
     @Schema(description = "成员ID")
     private String scopeId;
@@ -21,9 +24,66 @@ public class CluePool extends BaseModel {
     @Schema(description = "管理员ID")
     private String ownerId;
 
+    @Schema(description = "协同管理员ID")
+    private String collaboratorId;
+
     @Schema(description = "启用/禁用")
     private Boolean enable;
 
     @Schema(description = "自动回收")
     private Boolean auto;
+
+    @Schema(description = "领取模式: VISIBLE_PICKABLE(成员可见可领取)/ADMIN_ASSIGN_ONLY(成员不可见,管理员可分配)")
+    private String pickMode;
+
+    @Schema(description = "新线索提醒:为管理员推送待办")
+    private Boolean newLeadRemind;
+
+    @Schema(description = "未分配超时提醒分钟数")
+    private Integer unassignedReminderMinutes;
+
+    @Schema(description = "未跟进超时提醒分钟数")
+    private Integer unfollowedReminderMinutes;
+
+    @Schema(description = "未跟进超时时通知线索池管理员")
+    private Boolean notifyPoolAdminOnUnfollowedTimeout;
+
+    @Schema(description = "领取后允许转移")
+    private Boolean allowTransferAfterPick;
+
+    @Schema(description = "仅允许转入线索池成员")
+    private Boolean restrictTransferInToMembers;
+
+    @Schema(description = "仅允许退回线索池成员")
+    private Boolean restrictReturnToMembers;
+
+    @Schema(description = "负责人变化时清空团队")
+    private Boolean clearTeamOnOwnerChange;
+
+    @Schema(description = "负责人为空时清空外部负责人")
+    private Boolean clearExternalOwnerOnOwnerEmpty;
+
+    @Schema(description = "外部负责人为空时清空外部团队")
+    private Boolean clearExternalTeamOnExternalOwnerEmpty;
+
+    @Schema(description = "转移线索池时清空负责人")
+    private Boolean clearOwnerOnPoolTransfer;
+
+    @Schema(description = "转移线索池时清空外部负责人")
+    private Boolean clearExternalOwnerOnPoolTransfer;
+
+    @Schema(description = "领取前可查看变更记录")
+    private Boolean allowViewChangeLogBeforePick;
+
+    @Schema(description = "领取前可编辑团队")
+    private Boolean allowEditTeamBeforePick;
+
+    @Schema(description = "领取前可发送销售记录")
+    private Boolean allowSendSalesRecordBeforePick;
+
+    @Schema(description = "领取前可查看销售记录")
+    private Boolean allowViewSalesRecordBeforePick;
+
+    @Schema(description = "可查看线索池日志")
+    private Boolean allowViewPoolLog;
 }

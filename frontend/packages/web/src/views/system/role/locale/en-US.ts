@@ -26,4 +26,17 @@ export default {
   'role.batchRemoveTip': 'Are you sure you want to remove {count} members?',
   'role.batchRemoveConfirm': 'Confirm Removal',
   'role.newRole': 'New Role',
+  'role.fieldDesensitization': 'Field Mask',
+  'role.fieldDesensitizationTip':
+    'Configure fields to be masked for this role. Masked values will be displayed with asterisks.',
+  'role.selectModule': 'Select Module',
+  'role.fieldName': 'Field Name',
+  'role.fieldType': 'Field Type',
+  'role.maskFields': 'Masked Fields',
+  'role.moduleCustomer': 'Customer',
+  'role.moduleOpportunity': 'Opportunity',
+  'role.moduleOrder': 'Sales Order',
+  'role.moduleContact': 'Contact',
+  'role.noFields': 'No maskable fields in this module',
+  'role.saveSuccess': 'Saved successfully',
 };

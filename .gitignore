@@ -78,3 +78,8 @@ qywx.json
 
 # Claude Code
 .claude
+
+# Local agent plans and runtime logs
+.zcode/
+logs/
+*.log

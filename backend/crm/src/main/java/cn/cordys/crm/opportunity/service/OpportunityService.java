@@ -109,6 +109,8 @@ public class OpportunityService {
     @Resource
     private OpportunityFieldService opportunityFieldService;
     @Resource
+    private cn.cordys.common.service.FieldMaskService fieldMaskService;
+    @Resource
     private BaseChartService baseChartService;
     @Resource
     private LogService logService;
@@ -254,6 +256,7 @@ public class OpportunityService {
             opportunityListResponse.setReservedDays(endConfigMaps.containsKey(opportunityListResponse.getStage()) ?
                     null : opportunityRuleService.calcReservedDay(ownersDefaultRuleMap.get(opportunityListResponse.getOwner()), opportunityListResponse.getCreateTime()));
             opportunityListResponse.setModuleFields(opportunityFields);
+            fieldMaskService.maskModuleFields(opportunityListResponse.getModuleFields(), "opportunity");
 
             opportunityListResponse.setFollowerName(userNameMap.get(opportunityListResponse.getFollower()));
             opportunityListResponse.setCreateUserName(userNameMap.get(opportunityListResponse.getCreateUser()));
@@ -514,6 +517,7 @@ public class OpportunityService {
         fieldValueList = opportunityFieldService.setBusinessRefFieldValue(List.of(response),
                 moduleFormService.getFlattenFormFields(FormKey.OPPORTUNITY.getKey(), response.getOrganizationId()), new HashMap<>(Map.of(id, fieldValueList))).get(id);
         response.setModuleFields(fieldValueList);
+        fieldMaskService.maskModuleFields(response.getModuleFields(), "opportunity");
         List<String> userIds = Stream.of(Arrays.asList(response.getCreateUser(), response.getUpdateUser(), response.getOwner(), response.getFollower()))
                 .flatMap(Collection::stream)
                 .distinct()

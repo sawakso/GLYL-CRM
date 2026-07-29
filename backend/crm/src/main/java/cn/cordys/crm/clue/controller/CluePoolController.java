@@ -8,6 +8,7 @@ import cn.cordys.context.OrganizationContext;
 import cn.cordys.crm.clue.dto.CluePoolDTO;
 import cn.cordys.crm.clue.dto.request.CluePoolAddRequest;
 import cn.cordys.crm.clue.dto.request.CluePoolUpdateRequest;
+import cn.cordys.crm.clue.service.CluePoolAssignRuleService;
 import cn.cordys.crm.clue.service.CluePoolService;
 import cn.cordys.security.SessionUtils;
 import com.github.pagehelper.Page;
@@ -28,6 +29,8 @@ public class CluePoolController {
 
     @Resource
     private CluePoolService cluePoolService;
+    @Resource
+    private CluePoolAssignRuleService cluePoolAssignRuleService;
 
     @PostMapping("/page")
     @Operation(summary = "分页获取线索池")
@@ -63,20 +66,28 @@ public class CluePoolController {
     @Operation(summary = "线索池是否存在未领取线索")
     @RequiresPermissions(value = {PermissionConstants.MODULE_SETTING_UPDATE})
     public boolean checkNoPick(@PathVariable String id) {
-        return cluePoolService.checkNoPick(id);
+        return cluePoolService.checkNoPick(id, OrganizationContext.getOrganizationId());
     }
 
     @GetMapping("/delete/{id}")
     @Operation(summary = "删除线索池")
     @RequiresPermissions(value = {PermissionConstants.MODULE_SETTING_UPDATE})
     public void delete(@PathVariable String id) {
-        cluePoolService.delete(id);
+        cluePoolService.delete(id, OrganizationContext.getOrganizationId());
     }
 
     @GetMapping("/switch/{id}")
     @Operation(summary = "启用/禁用线索池")
     @RequiresPermissions(value = {PermissionConstants.MODULE_SETTING_UPDATE})
     public void switchStatus(@PathVariable String id) {
-        cluePoolService.switchStatus(id, SessionUtils.getUserId());
+        cluePoolService.switchStatus(id, SessionUtils.getUserId(), OrganizationContext.getOrganizationId());
+    }
+
+    @PostMapping("/assign-trigger/{poolId}")
+    @Operation(summary = "手动触发线索池自动分配")
+    @RequiresPermissions(value = {PermissionConstants.MODULE_SETTING_UPDATE})
+    public int triggerAssign(@PathVariable String poolId) {
+        return cluePoolAssignRuleService.batchMatchAndAssign(poolId,
+                OrganizationContext.getOrganizationId(), SessionUtils.getUserId());
     }
 }

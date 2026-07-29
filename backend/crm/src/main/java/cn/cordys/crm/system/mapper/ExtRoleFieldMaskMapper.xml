@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.cordys.crm.system.mapper.ExtRoleFieldMaskMapper">
+
+    <delete id="deleteByRoleId">
+        DELETE FROM sys_role_field_mask WHERE role_id = #{roleId}
+    </delete>
+
+    <select id="selectByRoleId" resultType="cn.cordys.crm.system.domain.RoleFieldMask">
+        SELECT id, role_id, module_key, field_id, field_key, field_type, organization_id,
+               create_time, update_time, create_user, update_user, pos
+        FROM sys_role_field_mask
+        WHERE role_id = #{roleId}
+        ORDER BY module_key, pos
+    </select>
+
+    <select id="selectByRoleIdAndModule" resultType="cn.cordys.crm.system.domain.RoleFieldMask">
+        SELECT id, role_id, module_key, field_id, field_key, field_type, organization_id,
+               create_time, update_time, create_user, update_user, pos
+        FROM sys_role_field_mask
+        WHERE role_id = #{roleId} AND module_key = #{moduleKey}
+    </select>
+
+    <select id="selectByRoleIdsAndModule" resultType="cn.cordys.crm.system.domain.RoleFieldMask">
+        SELECT id, role_id, module_key, field_id, field_key, field_type, organization_id,
+               create_time, update_time, create_user, update_user, pos
+        FROM sys_role_field_mask
+        WHERE module_key = #{moduleKey}
+        AND role_id IN
+        <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
+            #{roleId}
+        </foreach>
+    </select>
+
+</mapper>

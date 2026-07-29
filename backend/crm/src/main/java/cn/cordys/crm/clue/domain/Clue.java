@@ -63,6 +63,18 @@ public class Clue extends BaseModel {
     @Schema(description = "线索池ID")
     private String poolId;
 
+    @Schema(description = "最近来源线索池ID")
+    private String sourcePoolId;
+
+    @Schema(description = "最近入池时间")
+    private Long poolEntryTime;
+
+    @Schema(description = "未分配超时提醒发送时间")
+    private Long unassignedReminderSentAt;
+
+    @Schema(description = "未跟进超时提醒发送时间")
+    private Long unfollowedReminderSentAt;
+
     @Schema(description = "线索池原因ID")
     private String reasonId;
 }

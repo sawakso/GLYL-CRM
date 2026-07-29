@@ -14,6 +14,7 @@ import useProductApi from '@lib/shared/api/modules/product';
 import useSysApi from '@lib/shared/api/modules/sys';
 import useLicenseApi from '@lib/shared/api/modules/system/authorizedManagement';
 import useBusinessApi from '@lib/shared/api/modules/system/business';
+import useFieldMaskApi from '@lib/shared/api/modules/system/fieldMask';
 import useLoginApi from '@lib/shared/api/modules/system/login';
 import useMessageApi from '@lib/shared/api/modules/system/message';
 import useModuleApi from '@lib/shared/api/modules/system/module';
@@ -36,6 +37,7 @@ const orgApi = useOrgApi(CDR);
 const sysApi = useSysApi(CDR);
 const clueApi = useClueApi(CDR);
 const roleApi = useRoleApi(CDR);
+const fieldMaskApi = useFieldMaskApi(CDR);
 const homeApi = useHomeApi(CDR);
 const loginApi = useLoginApi(CDR);
 const aiApi = useAiApi(CDR);
@@ -675,6 +677,7 @@ export const {
   getReasonList,
   updateCluePool,
   noPickCluePool,
+  triggerCluePoolAssign,
   updateCapacity,
   deleteCapacity,
   uploadTempFile,
@@ -784,6 +787,8 @@ export const {
   getRoleDeptUserTree,
   batchRemoveRoleMember,
 } = roleApi;
+
+export const { getFieldMaskFields, getFieldMaskConfig, saveFieldMaskConfig } = fieldMaskApi;
 
 export const { login, signout, isLogin, getKey, getThirdCallback, getThirdOauthCallback, getOauthState } = loginApi;
 

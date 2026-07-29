@@ -1,29 +1,33 @@
 #!/bin/sh
 bash /shells/init-directories.sh
 
+cp -f /installer/conf/mysql/my.cnf /opt/cordys/conf/mysql/my.cnf
+
 cp -rf /opt/cordys/conf/mysql/my.cnf /etc/my.cnf.d/mariadb-server.cnf
 
-chmod 644 /etc/mysql/conf.d/my.cnf
 
 if [ ! -d "/run/mysqld" ]; then
   mkdir -p /run/mysqld
 fi
 
-if [ -d /app/mysql ]; then
+if [ -d /opt/cordys/data/mysql/mysql ]; then
   echo "[i] MySQL directory already present, skipping creation"
 else
   echo "[i] MySQL data directory not found, creating initial DBs"
 
   mysql_install_db --user=root > /dev/null
 
-  if [ "$MYSQL_ROOT_PASSWORD" = "" ]; then
-    MYSQL_ROOT_PASSWORD=CordysCRM@mysql
-    echo "[i] MySQL root Password: $MYSQL_ROOT_PASSWORD"
+  if [ -z "${MYSQL_ROOT_PASSWORD}" ]; then
+    echo "[ERROR] MYSQL_ROOT_PASSWORD 环境变量未设置"
+    exit 1
   fi
 
-  MYSQL_DATABASE=${MYSQL_DATABASE:-"cordys-crm"}
-  MYSQL_USER=${MYSQL_USER:-""}
-  MYSQL_PASSWORD=${MYSQL_PASSWORD:-""}
+  MYSQL_DATABASE=${MYSQL_DATABASE:-"fxiaoke_crm_5174"}
+  MYSQL_USER=${MYSQL_USER:-"fxiaoke_crm_5174"}
+  if [ -z "${MYSQL_PASSWORD}" ]; then
+    echo "[ERROR] MYSQL_PASSWORD 环境变量未设置"
+    exit 1
+  fi
 
   tfile=`mktemp`
   if [ ! -f "$tfile" ]; then
@@ -42,7 +46,7 @@ EOF
     echo "CREATE DATABASE IF NOT EXISTS \`$MYSQL_DATABASE\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;" >> $tfile
 
     if [ "$MYSQL_USER" != "" ]; then
-      echo "[i] Creating user: $MYSQL_USER with password $MYSQL_PASSWORD"
+      echo "[i] Creating user: $MYSQL_USER"
       echo "GRANT ALL ON \`$MYSQL_DATABASE\`.* to '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD';" >> $tfile
     fi
   fi

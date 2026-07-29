@@ -10,8 +10,8 @@ bash /shells/init-directories.sh
 
 # 检查 Redis 密码
 if [ -z "${REDIS_PASSWORD}" ]; then
-    log "警告：REDIS_PASSWORD 环境变量未设置，使用默认密码 CordysCRM@redis"
-    REDIS_PASSWORD="CordysCRM@redis"
+    log "错误：REDIS_PASSWORD 环境变量未设置"
+    exit 1
 fi
 
 # 启动 Redis 服务器

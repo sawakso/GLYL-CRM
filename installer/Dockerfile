@@ -3,7 +3,7 @@ FROM --platform=${BUILDPLATFORM} node:22-slim AS frontend
 WORKDIR /frontend
 COPY frontend /frontend
 RUN npm install -g pnpm@10.4.1 && \
-    pnpm install && \
+    pnpm install --frozen-lockfile && \
     pnpm run build
 
 
@@ -13,7 +13,8 @@ COPY . /build
 COPY --from=frontend /frontend/packages/web/dist /build/frontend/packages/web/dist
 COPY --from=frontend /frontend/packages/mobile/dist /build/frontend/packages/mobile/dist
 
-RUN ./mvnw clean package -DskipTests -pl '!frontend' && \
+RUN sed -i 's/\r$//' mvnw && chmod +x mvnw && \
+    ./mvnw clean package -DskipTests -pl '!frontend' && \
     mkdir backend/app/target/dependency && \
     cd backend/app/target/dependency && \
     jar -xf ../*.jar
@@ -50,5 +51,5 @@ VOLUME [ "/opt/cordys" ]
 
 EXPOSE 8081 8082 3306
 
-RUN chmod 777  /shells/*.sh
+RUN sed -i 's/\r$//' /shells/*.sh && chmod 755 /shells/*.sh
 ENTRYPOINT ["sh", "/shells/start-all.sh"]

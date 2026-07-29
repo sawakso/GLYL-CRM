@@ -1,7 +1,8 @@
+import { MemberSelectTypeEnum, ReasonTypeEnum } from '@lib/shared/enums/moduleEnum';
+
 import type { FormDesignKeyEnum, FormLinkScenarioEnum } from '../../enums/formDesignEnum';
 import type { ModuleField, TableQueryParams } from '../common';
 import type { FormCreateField } from '@cordys/web/src/components/business/crm-form-create/types';
-import { MemberSelectTypeEnum, ReasonTypeEnum } from '@lib/shared/enums/moduleEnum';
 
 export interface ModuleNavCommon {
   id?: string;
@@ -104,23 +105,66 @@ export interface CluePoolRecycleRuleParams {
   conditions: ModuleConditionsItem[]; // 规则条件集合
 }
 
+// 线索池分配规则匹配条件
+export interface AssignRuleCondition {
+  fieldId: string; // 自定义字段ID
+  operator: string; // 操作符: EQUALS/NOT_EQUALS/CONTAINS
+  value: string; // 匹配值
+}
+
+// 线索池分配规则
+export interface CluePoolAssignRuleParams {
+  id?: string;
+  poolId?: string;
+  ruleName?: string; // 规则名称
+  conditionList?: AssignRuleCondition[]; // 匹配条件
+  assignType: string; // 分配方式: SINGLE/ROUND_ROBIN
+  targetUserNames?: SelectedUsersItem[]; // 目标人员(回显)
+  currentIndex?: number; // 循环分配指针
+  pos?: number; // 排序
+  enable?: boolean; // 启用/禁用
+}
+
 // 编辑线索池请求参数
 export interface CluePoolParams {
   id?: string; // ID
   name: string; // 线索池名称
+  description?: string; // 线索池描述
   scopeIds: string[]; // 范围ID集合
   ownerIds: string[]; // 管理员ID集合
+  collaboratorIds: string[]; // 协同管理员ID集合
   enable: boolean; // 启用/禁用
   auto: boolean; // 自动回收
+  pickMode?: string; // 领取模式: VISIBLE_PICKABLE/ADMIN_ASSIGN_ONLY
+  newLeadRemind?: boolean; // 新线索提醒
+  unassignedReminderMinutes: number; // 未分配超时提醒总分钟数
+  unfollowedReminderMinutes: number; // 未跟进超时提醒总分钟数
+  notifyPoolAdminOnUnfollowedTimeout: boolean; // 未跟进超时通知池管理员
+  allowTransferAfterPick: boolean; // 领取后允许转移
+  restrictTransferInToMembers: boolean; // 仅允许转入线索池成员
+  restrictReturnToMembers: boolean; // 仅允许退回线索池成员
+  clearTeamOnOwnerChange: boolean; // 负责人变化时清空团队
+  clearExternalOwnerOnOwnerEmpty: boolean; // 负责人为空时清空外部负责人
+  clearExternalTeamOnExternalOwnerEmpty: boolean; // 外部负责人为空时清空外部团队
+  clearOwnerOnPoolTransfer: boolean; // 转移线索池时清空负责人
+  clearExternalOwnerOnPoolTransfer: boolean; // 转移线索池时清空外部负责人
+  allowViewChangeLogBeforePick: boolean; // 领取前可查看变更记录
+  allowEditTeamBeforePick: boolean; // 领取前可编辑团队
+  allowSendSalesRecordBeforePick: boolean; // 领取前可发送销售记录
+  allowViewSalesRecordBeforePick: boolean; // 领取前可查看销售记录
+  allowViewPoolLog: boolean; // 可查看线索池日志
   pickRule: CluePoolPickRuleParams; // 领取规则
   recycleRule: CluePoolRecycleRuleParams; // 回收规则
+  assignRules: CluePoolAssignRuleParams[]; // 分配规则集合
   hiddenFieldIds: string[]; // 隐藏的表格字段
 }
 
-export interface CluePoolForm extends Omit<CluePoolParams, 'scopeIds' | 'ownerIds'> {
+export interface CluePoolForm extends Omit<CluePoolParams, 'scopeIds' | 'ownerIds' | 'collaboratorIds'> {
   adminIds: SelectedUsersItem[];
+  collaboratorIds: SelectedUsersItem[]; // 协同管理员
   userIds: SelectedUsersItem[]; // 成员ID
   hiddenFieldIds: string[]; // 隐藏的表格字段
+  updateTime?: number; // 最近更新时间，仅用于编辑回显
 }
 
 // 线索池列表项
@@ -132,15 +176,38 @@ export interface CluePoolItem {
   createTime: number;
   updateTime: number;
   name: string;
+  description?: string;
   scopeId: string;
   organizationId: string;
   ownerId: string;
+  collaboratorId?: string;
   enable: boolean;
   auto: boolean;
+  pickMode?: string; // 领取模式
+  newLeadRemind?: boolean; // 新线索提醒
+  unassignedReminderMinutes?: number; // 未分配超时提醒总分钟数
+  unfollowedReminderMinutes?: number; // 未跟进超时提醒总分钟数
+  notifyPoolAdminOnUnfollowedTimeout?: boolean; // 未跟进超时通知池管理员
+  allowTransferAfterPick?: boolean; // 领取后允许转移
+  restrictTransferInToMembers?: boolean; // 仅允许转入线索池成员
+  restrictReturnToMembers?: boolean; // 仅允许退回线索池成员
+  clearTeamOnOwnerChange?: boolean; // 负责人变化时清空团队
+  clearExternalOwnerOnOwnerEmpty?: boolean; // 负责人为空时清空外部负责人
+  clearExternalTeamOnExternalOwnerEmpty?: boolean; // 外部负责人为空时清空外部团队
+  clearOwnerOnPoolTransfer?: boolean; // 转移线索池时清空负责人
+  clearExternalOwnerOnPoolTransfer?: boolean; // 转移线索池时清空外部负责人
+  allowViewChangeLogBeforePick?: boolean; // 领取前可查看变更记录
+  allowEditTeamBeforePick?: boolean; // 领取前可编辑团队
+  allowSendSalesRecordBeforePick?: boolean; // 领取前可发送销售记录
+  allowViewSalesRecordBeforePick?: boolean; // 领取前可查看销售记录
+  allowViewPoolLog?: boolean; // 可查看线索池日志
   members: SelectedUsersItem[];
   owners: SelectedUsersItem[];
+  collaborators?: SelectedUsersItem[];
   pickRule: CluePoolPickRuleParams; // 领取规则
   recycleRule: CluePoolRecycleRuleParams; // 回收规则
+  assignRules?: CluePoolAssignRuleParams[]; // 分配规则集合
+  currentClueCount?: number; // 当前线索数量
   fieldConfigs: {
     editable: boolean;
     enable: boolean;

@@ -476,7 +476,10 @@
 
     <update id="moveToPool" parameterType="cn.cordys.crm.clue.domain.Clue">
         update `clue` set pool_id = #{clue.poolId}, owner = #{clue.owner}, collection_time = #{clue.collectionTime}, reason_id = #{clue.reasonId},
-                          in_shared_pool = #{clue.inSharedPool}, update_user = #{clue.updateUser}, update_time = #{clue.updateTime}
+                          source_pool_id = #{clue.poolId}, pool_entry_time = #{clue.updateTime},
+                          unassigned_reminder_sent_at = NULL, unfollowed_reminder_sent_at = NULL,
+                          in_shared_pool = #{clue.inSharedPool}, update_user = #{clue.updateUser},
+                          update_time = #{clue.updateTime}
         where id = #{clue.id}
     </update>
 

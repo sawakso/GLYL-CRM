@@ -3,10 +3,12 @@
   "include": [
     "src/**/*",
     "types/**/*",
+    "config/**/*.ts",
     "*.d.ts",
   ],
   "compilerOptions": {
     "baseUrl": "./",
+    "moduleResolution": "bundler",
     "paths": {
       // 路径映射
       "@/*": [

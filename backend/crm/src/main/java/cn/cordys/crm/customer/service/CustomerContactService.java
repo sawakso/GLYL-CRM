@@ -101,6 +101,8 @@ public class CustomerContactService {
     @Resource
     private CustomerContactFieldService customerContactFieldService;
     @Resource
+    private cn.cordys.common.service.FieldMaskService fieldMaskService;
+    @Resource
     private BaseChartService baseChartService;
     @Resource
     private CustomerCollaborationService customerCollaborationService;
@@ -193,6 +195,8 @@ public class CustomerContactService {
             // 获取自定义字段
             List<BaseModuleFieldValue> customerFields = fieldValueMap.get(customerListResponse.getId());
             customerListResponse.setModuleFields(customerFields);
+            fieldMaskService.maskModuleFields(customerListResponse.getModuleFields(), "contact");
+            customerListResponse.setPhone(fieldMaskService.maskBuiltinField(customerListResponse.getPhone(), "phone", "contact"));
 
             UserDeptDTO userDeptDTO = userDeptMap.get(customerListResponse.getOwner());
             if (userDeptDTO != null) {
@@ -250,6 +254,8 @@ public class CustomerContactService {
 
         customerContactGetResponse.setOptionMap(optionMap);
         customerContactGetResponse.setModuleFields(customerContactFields);
+        fieldMaskService.maskModuleFields(customerContactGetResponse.getModuleFields(), "contact");
+        customerContactGetResponse.setPhone(fieldMaskService.maskBuiltinField(customerContactGetResponse.getPhone(), "phone", "contact"));
 
         // 附件信息
         customerContactGetResponse.setAttachmentMap(moduleFormService.getAttachmentMap(customerContactFormConfig, customerContactFields));

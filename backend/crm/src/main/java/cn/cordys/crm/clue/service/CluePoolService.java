@@ -16,6 +16,7 @@ import cn.cordys.common.util.JSON;
 import cn.cordys.common.util.Translator;
 import cn.cordys.common.utils.RecycleConditionUtils;
 import cn.cordys.crm.clue.domain.*;
+import cn.cordys.crm.clue.dto.CluePoolAssignRuleDTO;
 import cn.cordys.crm.clue.dto.CluePoolDTO;
 import cn.cordys.crm.clue.dto.CluePoolFieldConfigDTO;
 import cn.cordys.crm.clue.dto.CluePoolPickRuleDTO;
@@ -67,6 +68,8 @@ public class CluePoolService {
     private UserExtendService userExtendService;
     @Resource
     private ModuleFormCacheService moduleFormCacheService;
+    @Resource
+    private CluePoolAssignRuleService cluePoolAssignRuleService;
 
     /**
      * 分页获取线索池
@@ -108,11 +111,22 @@ public class CluePoolService {
                 .stream()
                 .collect(Collectors.groupingBy(CluePoolHiddenField::getPoolId));
 
+        // 批量查分配规则
+        Map<String, List<CluePoolAssignRuleDTO>> assignRuleMap = cluePoolAssignRuleService.getRulesByPoolIds(poolIds)
+                .stream()
+                .collect(Collectors.groupingBy(CluePoolAssignRuleDTO::getPoolId));
+
+        // 批量查各池当前线索数量
+        Map<String, Long> clueCountMap = getClueCountByPoolIds(poolIds);
+
         List<BaseField> fields = moduleFormCacheService.getBusinessFormConfig(FormKey.CLUE.getKey(), organizationId).getFields();
 
         pools.forEach(pool -> {
             pool.setMembers(userExtendService.getScope(JSON.parseArray(pool.getScopeId(), String.class)));
             pool.setOwners(userExtendService.getScope(JSON.parseArray(pool.getOwnerId(), String.class)));
+            pool.setCollaborators(StringUtils.isBlank(pool.getCollaboratorId())
+                    ? List.of()
+                    : userExtendService.getScope(JSON.parseArray(pool.getCollaboratorId(), String.class)));
             pool.setCreateUserName(userMap.get(pool.getCreateUser()));
             pool.setUpdateUserName(userMap.get(pool.getUpdateUser()));
 
@@ -125,6 +139,12 @@ public class CluePoolService {
             delOldTime(recycleRule);
             pool.setPickRule(pickRule);
             pool.setRecycleRule(recycleRule);
+
+            // 填充分配规则
+            pool.setAssignRules(assignRuleMap.getOrDefault(pool.getId(), new ArrayList<>()));
+
+            // 填充当前线索数量
+            pool.setCurrentClueCount(clueCountMap.getOrDefault(pool.getId(), 0L).intValue());
 
             Set<String> hiddenFieldIds;
             if (hiddenFieldMap.get(pool.getId()) != null) {
@@ -179,6 +199,22 @@ public class CluePoolService {
     }
 
     /**
+     * 批量查询各池当前线索数量(inSharedPool=true)
+     *
+     * @param poolIds 线索池ID集合
+     * @return poolId -> 线索数量
+     */
+    public Map<String, Long> getClueCountByPoolIds(List<String> poolIds) {
+        if (CollectionUtils.isEmpty(poolIds)) {
+            return new HashMap<>();
+        }
+        LambdaQueryWrapper<Clue> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(Clue::getPoolId, poolIds).eq(Clue::getInSharedPool, true);
+        List<Clue> clues = clueMapper.selectListByLambda(wrapper);
+        return clues.stream().collect(Collectors.groupingBy(Clue::getPoolId, Collectors.counting()));
+    }
+
+    /**
      * 添加线索池
      *
      * @param request 添加参数
@@ -190,6 +226,7 @@ public class CluePoolService {
         pool.setId(IDGenerator.nextStr());
         pool.setOrganizationId(currentOrgId);
         pool.setOwnerId(JSON.toJSONString(request.getOwnerIds()));
+        pool.setCollaboratorId(JSON.toJSONString(request.getCollaboratorIds() == null ? List.of() : request.getCollaboratorIds()));
         pool.setScopeId(JSON.toJSONString(request.getScopeIds()));
         pool.setCreateTime(System.currentTimeMillis());
         pool.setCreateUser(currentUserId);
@@ -227,6 +264,9 @@ public class CluePoolService {
 
         batchInsertCluePoolHiddenFields(pool.getId(), request.getHiddenFieldIds());
 
+        // 保存分配规则
+        cluePoolAssignRuleService.saveRules(pool.getId(), request.getAssignRules(), currentUserId, currentOrgId);
+
         // 添加日志上下文
         OperationLogContext.setContext(LogContextInfo.builder()
                 .modifiedValue(pool)
@@ -242,12 +282,12 @@ public class CluePoolService {
      */
     @OperationLog(module = LogModule.SYSTEM_MODULE, type = LogType.UPDATE)
     public void update(CluePoolUpdateRequest request, String currentUserId, String currentOrgId) {
-        CluePool originPool = checkPoolExist(request.getId());
+        CluePool originPool = checkPoolExist(request.getId(), currentOrgId);
 
         CluePool pool = new CluePool();
         BeanUtils.copyBean(pool, request);
-        pool.setOrganizationId(currentOrgId);
         pool.setOwnerId(JSON.toJSONString(request.getOwnerIds()));
+        pool.setCollaboratorId(JSON.toJSONString(request.getCollaboratorIds() == null ? List.of() : request.getCollaboratorIds()));
         pool.setScopeId(JSON.toJSONString(request.getScopeIds()));
         pool.setUpdateTime(System.currentTimeMillis());
         pool.setUpdateUser(currentUserId);
@@ -278,6 +318,11 @@ public class CluePoolService {
         if (request.getHiddenFieldIds() != null) {
             deleteCluePoolHiddenFieldByPoolId(pool.getId());
             batchInsertCluePoolHiddenFields(pool.getId(), request.getHiddenFieldIds());
+        }
+
+        // 保存分配规则(先删后插)
+        if (request.getAssignRules() != null) {
+            cluePoolAssignRuleService.saveRules(pool.getId(), request.getAssignRules(), currentUserId, currentOrgId);
         }
 
         OperationLogContext.setContext(
@@ -316,9 +361,11 @@ public class CluePoolService {
      *
      * @param id 线索池ID
      */
-    public boolean checkNoPick(String id) {
+    public boolean checkNoPick(String id, String currentOrgId) {
+        checkPoolExist(id, currentOrgId);
         LambdaQueryWrapper<Clue> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Clue::getPoolId, id)
+                .eq(Clue::getOrganizationId, currentOrgId)
                 .eq(Clue::getInSharedPool, true);
         List<Clue> relations = clueMapper.selectListByLambda(wrapper);
         return CollectionUtils.isNotEmpty(relations);
@@ -330,8 +377,8 @@ public class CluePoolService {
      * @param id 线索池ID
      */
     @OperationLog(module = LogModule.SYSTEM_MODULE, type = LogType.DELETE, resourceId = "{#id}")
-    public void delete(String id) {
-        checkPoolExist(id);
+    public void delete(String id, String currentOrgId) {
+        checkPoolExist(id, currentOrgId);
         cluePoolMapper.deleteByPrimaryKey(id);
         CluePoolPickRule pickRule = new CluePoolPickRule();
         pickRule.setPoolId(id);
@@ -340,6 +387,7 @@ public class CluePoolService {
         recycleRule.setPoolId(id);
         cluePoolRecycleRuleMapper.delete(recycleRule);
         deleteCluePoolHiddenFieldByPoolId(id);
+        cluePoolAssignRuleService.deleteByPoolId(id, currentOrgId);
 
         // 设置操作对象
         OperationLogContext.setResourceName(Translator.get("module.clue.pool.setting"));
@@ -351,8 +399,8 @@ public class CluePoolService {
      * @param id 线索池ID
      */
     @OperationLog(module = LogModule.SYSTEM_MODULE, type = LogType.UPDATE, resourceId = "{#id}")
-    public void switchStatus(String id, String currentUserId) {
-        CluePool pool = checkPoolExist(id);
+    public void switchStatus(String id, String currentUserId, String currentOrgId) {
+        CluePool pool = checkPoolExist(id, currentOrgId);
 
         Boolean oldEnable = pool.getEnable();
         Boolean newEnable = !BooleanUtils.isTrue(oldEnable);
@@ -450,9 +498,9 @@ public class CluePoolService {
      *
      * @return 线索池
      */
-    private CluePool checkPoolExist(String id) {
+    private CluePool checkPoolExist(String id, String organizationId) {
         CluePool pool = cluePoolMapper.selectByPrimaryKey(id);
-        if (pool == null) {
+        if (pool == null || !Strings.CS.equals(pool.getOrganizationId(), organizationId)) {
             throw new GenericException(Translator.get("clue_pool_not_exist"));
         }
         return pool;
@@ -522,9 +570,14 @@ public class CluePoolService {
     }
 
     public void checkPermission(String id, String userId, String orgId) {
-        CluePool cluePool = checkPoolExist(id);
-        List<String> ownerIds = userExtendService.getScopeOwnerIds(JSON.parseArray(cluePool.getOwnerId(), String.class), orgId);
-        if (!ownerIds.contains(userId)) {
+        CluePool cluePool = checkPoolExist(id, orgId);
+        Set<String> adminIds = new HashSet<>(
+                userExtendService.getScopeOwnerIds(JSON.parseArray(cluePool.getOwnerId(), String.class), orgId));
+        if (StringUtils.isNotBlank(cluePool.getCollaboratorId())) {
+            adminIds.addAll(userExtendService.getScopeOwnerIds(
+                    JSON.parseArray(cluePool.getCollaboratorId(), String.class), orgId));
+        }
+        if (!adminIds.contains(userId)) {
             throw new GenericException(Translator.get("no.operation.permission"));
         }
 

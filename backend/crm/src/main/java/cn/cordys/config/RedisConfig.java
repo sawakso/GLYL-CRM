@@ -3,6 +3,7 @@ package cn.cordys.config;
 import cn.cordys.common.constants.TopicConstants;
 import cn.cordys.common.redis.MessageSubscriber;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
@@ -29,16 +30,21 @@ public class RedisConfig {
      *
      * @param redisConnectionFactory Redis 连接工厂
      *
+     * @param cacheKeyPrefix        当前应用的缓存键前缀
      * @return RedisCacheManager 实例
      */
     @Bean
-    public RedisCacheManager cacheManager(RedisConnectionFactory redisConnectionFactory) {
+    public RedisCacheManager cacheManager(
+            RedisConnectionFactory redisConnectionFactory,
+            @Value("${spring.cache.redis.key-prefix:}") String cacheKeyPrefix) {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                 // 设置缓存有效时间
                 .entryTtl(Duration.ofHours(1))
                 // 设置 key 和 value 的序列化方式
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()))
+                // 即使误连到同一 Redis，也不与其他 CRM 实例共用缓存键
+                .computePrefixWith(cacheName -> cacheKeyPrefix + cacheName + "::")
                 // 禁止缓存 null 值
                 .disableCachingNullValues();
 

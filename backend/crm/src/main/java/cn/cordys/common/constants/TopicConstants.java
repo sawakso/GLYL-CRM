@@ -6,12 +6,12 @@ public class TopicConstants {
     /**
      * 下载任务的 Redis 主题名称
      */
-    public static final String DOWNLOAD_TOPIC = "download-topic";
+    public static final String DOWNLOAD_TOPIC = "fxiaoke-crm-5174:download-topic";
 
     /**
      * sse 消息通知的Redis 主题名称
      */
-    public static final String SSE_TOPIC = "sse-topic";
+    public static final String SSE_TOPIC = "fxiaoke-crm-5174:sse-topic";
 
     /**
      * 所有 Redis 主题的集合

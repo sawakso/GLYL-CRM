@@ -100,6 +100,18 @@ public class NotificationConstants {
         //跟进计划到期
         @Schema(description = "message.clue_follow_up_plan_due")
         String CLUE_FOLLOW_UP_PLAN_DUE = "CLUE_FOLLOW_UP_PLAN_DUE";
+        //新线索提醒(线索池管理员待办)
+        @Schema(description = "message.clue_pool_new_lead_remind")
+        String CLUE_POOL_NEW_LEAD_REMIND = "CLUE_POOL_NEW_LEAD_REMIND";
+        //线索池超时提醒
+        @Schema(description = "message.clue_pool_timeout_remind")
+        String CLUE_POOL_TIMEOUT_REMIND = "CLUE_POOL_TIMEOUT_REMIND";
+        //线索池未分配超时提醒
+        @Schema(description = "message.clue_pool_unassigned_timeout_remind")
+        String CLUE_POOL_UNASSIGNED_TIMEOUT_REMIND = "CLUE_POOL_UNASSIGNED_TIMEOUT_REMIND";
+        //线索池未跟进超时提醒
+        @Schema(description = "message.clue_pool_unfollowed_timeout_remind")
+        String CLUE_POOL_UNFOLLOWED_TIMEOUT_REMIND = "CLUE_POOL_UNFOLLOWED_TIMEOUT_REMIND";
         //-------商机管理----
         //新建商机
         @Schema(description = "message.business_add")
@@ -240,6 +252,18 @@ public class NotificationConstants {
         //请注意！${clueName}由线索，已由线索池分配给您，请及时跟进处理！
         @Schema(description = "message.clue_distributed_text")
         String CLUE_DISTRIBUTED_TEXT = "CLUE_DISTRIBUTED_TEXT";
+
+        //线索池新增线索提醒
+        @Schema(description = "message.clue_pool_new_lead_remind_text")
+        String CLUE_POOL_NEW_LEAD_REMIND_TEXT = "CLUE_POOL_NEW_LEAD_REMIND_TEXT";
+
+        //线索进入池后未分配超时提醒
+        @Schema(description = "message.clue_pool_unassigned_timeout_remind_text")
+        String CLUE_POOL_UNASSIGNED_TIMEOUT_REMIND_TEXT = "CLUE_POOL_UNASSIGNED_TIMEOUT_REMIND_TEXT";
+
+        //线索分配后未跟进超时提醒
+        @Schema(description = "message.clue_pool_unfollowed_timeout_remind_text")
+        String CLUE_POOL_UNFOLLOWED_TIMEOUT_REMIND_TEXT = "CLUE_POOL_UNFOLLOWED_TIMEOUT_REMIND_TEXT";
 
         //请注意！您创建的${clueName}线索跟进计划，已到预定时间，请及时跟进！
         @Schema(description = "message.clue_follow_up_plan_due_text")

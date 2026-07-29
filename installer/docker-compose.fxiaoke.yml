@@ -1,0 +1,35 @@
+name: fxiaoke-crm-5174
+
+services:
+  fxiaoke-crm-5174:
+    container_name: fxiaoke-crm-5174
+    image: fxiaoke-crm-5174:local
+    build:
+      context: ..
+      dockerfile: installer/Dockerfile
+    ports:
+      - "5174:8081"
+    environment:
+      MYSQL_ROOT_PASSWORD: "${FXIAOKE_MYSQL_ROOT_PASSWORD:?请在 installer/.env 中设置 FXIAOKE_MYSQL_ROOT_PASSWORD}"
+      MYSQL_DATABASE: "fxiaoke_crm_5174"
+      MYSQL_USER: "fxiaoke_crm_5174"
+      MYSQL_PASSWORD: "${FXIAOKE_MYSQL_PASSWORD:?请在 installer/.env 中设置 FXIAOKE_MYSQL_PASSWORD}"
+      REDIS_PASSWORD: "${FXIAOKE_REDIS_PASSWORD:?请在 installer/.env 中设置 FXIAOKE_REDIS_PASSWORD}"
+      CORDYS_SECRET_KEY: "${FXIAOKE_CORDYS_SECRET_KEY:?请在 installer/.env 中设置 FXIAOKE_CORDYS_SECRET_KEY}"
+    volumes:
+      - fxiaoke-crm-5174-data:/opt/cordys
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8081/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+
+volumes:
+  fxiaoke-crm-5174-data:
+    name: fxiaoke-crm-5174-data
+
+networks:
+  default:
+    name: fxiaoke-crm-5174-network

@@ -93,6 +93,8 @@ public class OrderService implements ApprovalResourceHandler {
     @Resource
     private OrderFieldService orderFieldService;
     @Resource
+    private cn.cordys.common.service.FieldMaskService fieldMaskService;
+    @Resource
     private BaseMapper<Order> orderMapper;
     @Resource
     private BaseService baseService;
@@ -238,6 +240,7 @@ public class OrderService implements ApprovalResourceHandler {
 
         orderGetResponse.setOptionMap(optionMap);
         orderGetResponse.setModuleFields(orderFields);
+        fieldMaskService.maskModuleFields(orderGetResponse.getModuleFields(), "order");
 
         if (orderGetResponse.getOwner() != null) {
             UserDeptDTO userDeptDTO = baseService.getUserDeptMapByUserId(orderGetResponse.getOwner(), order.getOrganizationId());
@@ -740,6 +743,7 @@ public class OrderService implements ApprovalResourceHandler {
             // 获取自定义字段
             List<BaseModuleFieldValue> orderFields = resolvefieldValueMap.get(item.getId());
             item.setModuleFields(orderFields);
+            fieldMaskService.maskModuleFields(item.getModuleFields(), "order");
             item.setFirstApproved(firstNodeApprovedMap.get(item.getId()));
         });
         return baseService.setCreateUpdateOwnerUserName(list);

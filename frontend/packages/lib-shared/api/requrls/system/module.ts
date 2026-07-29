@@ -22,6 +22,7 @@ export const QuickUpdateCluePoolUrl = '/lead-pool/quick-update'; // 快捷编辑
 export const SwitchCluePoolStatusUrl = '/lead-pool/switch'; // 启用/禁用线索池
 export const DeleteCluePoolUrl = '/lead-pool/delete'; // 删除线索池
 export const NoPickCluePoolUrl = '/lead-pool/no-pick'; // 未领取线索
+export const TriggerCluePoolAssignUrl = '/lead-pool/assign-trigger'; // 手动触发线索池自动分配
 
 // 模块-线索库容
 export const GetClueCapacityPageUrl = '/lead-capacity/get'; // 获取线索库容规则

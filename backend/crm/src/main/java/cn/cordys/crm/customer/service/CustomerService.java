@@ -111,6 +111,8 @@ public class CustomerService {
     @Resource
     private CustomerFieldService customerFieldService;
     @Resource
+    private cn.cordys.common.service.FieldMaskService fieldMaskService;
+    @Resource
     private CustomerCollaborationService customerCollaborationService;
     @Resource
     private CustomerOwnerHistoryService customerOwnerHistoryService;
@@ -273,6 +275,7 @@ public class CustomerService {
             // 获取自定义字段
             List<BaseModuleFieldValue> customerFields = caseCustomFiledMap.get(customerListResponse.getId());
             customerListResponse.setModuleFields(customerFields);
+            fieldMaskService.maskModuleFields(customerListResponse.getModuleFields(), "customer");
             // 设置回收公海
             CustomerPool reservePool = ownersDefaultPoolMap.get(customerListResponse.getOwner());
             customerListResponse.setRecyclePoolName(reservePool != null ? reservePool.getName() : null);
@@ -347,6 +350,7 @@ public class CustomerService {
 
         customerGetResponse.setOptionMap(optionMap);
         customerGetResponse.setModuleFields(customerFields);
+        fieldMaskService.maskModuleFields(customerGetResponse.getModuleFields(), "customer");
 
         // 公海原因
         DictConfigDTO dictConf = dictService.getDictConf(DictModule.CUSTOMER_POOL_RS.name(), customer.getOrganizationId());
