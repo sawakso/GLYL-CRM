@@ -51,12 +51,13 @@ export default mergeConfig(
       },
     },
     plugins: [
-      eslint({
-        overrideConfigFile: 'eslint.config.cjs',
-        cache: false,
-        include: ['src/**/*.ts', 'src/**/*.tsx', 'src/**/*.vue'],
-        exclude: ['node_modules'],
-      }),
+      // 开发时禁用 eslint 实时检查以提升速度,提交前请手动执行 pnpm lint
+      // eslint({
+      //   overrideConfigFile: 'eslint.config.cjs',
+      //   cache: false,
+      //   include: ['src/**/*.ts', 'src/**/*.tsx', 'src/**/*.vue'],
+      //   exclude: ['node_modules'],
+      // }),
     ],
   },
   baseConfig

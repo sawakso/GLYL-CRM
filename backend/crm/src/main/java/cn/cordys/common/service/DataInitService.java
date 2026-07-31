@@ -72,6 +72,7 @@ public class DataInitService {
             initOneTime(moduleFormService::initUpgradeForm, "init.upgrade.form.v1.5.1");
             initOneTime(moduleFormService::initExtFieldsByVer, "1.5.0", "init.ext.fields.v1.5.0");
             initOneTime(moduleFormService::initExtFieldsByVer, "1.5.1", "init.ext.fields.v1.5.1");
+            initOneTime(moduleFormService::initExtFieldsByVer, "1.11.0", "init.ext.fields.v1.11.0");
             initOneTime(moduleFieldExtService::setDefaultOptionSource, "set.default.option.source");
             initOneTime(moduleFieldExtService::refreshPlanFieldPos, "refresh.plan.field.pos");
             initOneTime(moduleFormService::initInvoiceFormScenarioProp, "init.invoice.form.scenario");

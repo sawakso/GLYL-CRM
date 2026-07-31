@@ -50,6 +50,67 @@ public enum BusinessModuleField {
      * 意向产品
      */
     CLUE_PRODUCTS("clueProduct", "products", Set.of(), FormKey.CLUE.getKey()),
+
+    /*------ start: 纷享销客扩展字段 (ext_ver 1.11.0) ------*/
+    // 联系/企业信息
+    CLUE_TEL("tel", "tel", Set.of("mobile", "readable"), FormKey.CLUE.getKey()),
+    CLUE_MOBILE("mobile", "mobile", Set.of("mobile", "readable"), FormKey.CLUE.getKey()),
+    CLUE_EMAIL("email", "email", Set.of("mobile", "readable"), FormKey.CLUE.getKey()),
+    CLUE_ADDRESS("address", "address", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_URL("url", "url", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_COMPANY("company", "company", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_DEPARTMENT("department", "department", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_JOB_TITLE("job_title", "jobTitle", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_PICTURE_PATH("picture_path", "picturePath", Set.of("readable"), FormKey.CLUE.getKey()),
+    // 状态/管理
+    CLUE_SOURCE("source", "source", Set.of("options", "readable"), FormKey.CLUE.getKey()),
+    CLUE_LEADS_STAGE("leads_stage", "leadsStage", Set.of("options", "readable"), FormKey.CLUE.getKey()),
+    CLUE_BIZ_STATUS("biz_status", "bizStatus", Set.of("options", "readable"), FormKey.CLUE.getKey()),
+    CLUE_LIFE_STATUS("life_status", "lifeStatus", Set.of("options", "readable"), FormKey.CLUE.getKey()),
+    CLUE_LOCK_STATUS("lock_status", "lockStatus", Set.of("options", "readable"), FormKey.CLUE.getKey()),
+    CLUE_RECORD_TYPE("record_type", "recordType", Set.of("options", "readable"), FormKey.CLUE.getKey()),
+    // 跟进/负责人
+    CLUE_NEXT_FOLLOWED_TIME("next_followed_time", "nextFollowedTime", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_NEXT_FOLLOWED_REMARK("next_followed_remark", "nextFollowedRemark", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_LAST_FOLLOW_TIME("last_follow_time", "lastFollowTime", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_LAST_FOLLOWER("last_follower", "lastFollower", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_REMARK("remark", "remark", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_OUT_OWNER("out_owner", "outOwner", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_ASSIGNER_ID("assigner_id", "assignerId", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_DATA_OWN_DEPARTMENT("data_own_department", "dataOwnDepartment", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_OWNER_DEPARTMENT("owner_department", "ownerDepartment", Set.of("readable"), FormKey.CLUE.getKey()),
+    // 时间/转换 (映射字段: 复用已有列)
+    CLUE_TRANSFORM_TIME("transform_time", "transformTime", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_OWNER_CHANGE_TIME("owner_change_time", "ownerChangeTime", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_ASSIGNED_TIME("assigned_time", "collectionTime", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_RETURNED_TIME("returned_time", "returnedTime", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_LAST_MODIFIED_TIME("last_modified_time", "updateTime", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_CHANGED_TO_MQL_TIME("changed_to_mql_time", "changedToMqlTime", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_EXPIRE_TIME("expire_time", "expireTime", Set.of("readable"), FormKey.CLUE.getKey()),
+    // 转换/布尔
+    CLUE_CONVERSION_PROBABILITY("conversion_probability", "conversionProbability", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_REMAINING_TIME("remaining_time", "remainingTime", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_IS_OVERTIME("is_overtime", "isOvertime", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_IS_DUPLICATED("is_duplicated", "isDuplicated", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_BIZ_REG_NAME("biz_reg_name", "bizRegName", Set.of("readable"), FormKey.CLUE.getKey()),
+    // 原因/结果
+    CLUE_BACK_REASON("back_reason", "backReason", Set.of("options", "readable"), FormKey.CLUE.getKey()),
+    CLUE_CLOSE_REASON("close_reason", "closeReason", Set.of("options", "readable"), FormKey.CLUE.getKey()),
+    CLUE_COMPLETED_RESULT("completed_result", "completedResult", Set.of("readable"), FormKey.CLUE.getKey()),
+    // 延期
+    CLUE_EXTEND_DAYS("extend_days", "extendDays", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_EXTEND_REASON("extend_reason", "extendReason", Set.of("readable"), FormKey.CLUE.getKey()),
+    // 关联
+    CLUE_MARKETING_EVENT_ID("marketing_event_id", "marketingEventId", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_COLLECTED_TO("collected_to", "collectedTo", Set.of("readable"), FormKey.CLUE.getKey()),
+    // 审计 (映射字段: 复用已有列)
+    CLUE_CREATED_BY("created_by", "createUser", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_LAST_MODIFIED_BY("last_modified_by", "updateUser", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_LEADS_POOL_ID("leads_pool_id", "poolId", Set.of("options", "readable"), FormKey.CLUE.getKey()),
+    // 其他
+    CLUE_PHONE_NUMBER_ATTRIBUTION("phone_number_attribution", "phoneNumberAttribution", Set.of("readable"), FormKey.CLUE.getKey()),
+    CLUE_ENTERPRISE_WECHAT_USER_ID("enterprise_wechat_user_id", "enterpriseWechatUserId", Set.of("readable"), FormKey.CLUE.getKey()),
+    /*------ end: 纷享销客扩展字段 (ext_ver 1.11.0) ------*/
     /*------ end: CUSTOMER ------*/
 
     /*------ start: CUSTOMER_MANAGEMENT_CONTACT ------*/

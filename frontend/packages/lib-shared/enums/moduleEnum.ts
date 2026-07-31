@@ -34,9 +34,15 @@ export enum ModuleConfigEnum {
 
   /** 招标 */
   TENDER = 'tender',
-  
-   /** 自定义表单 */
+
+  /** 自定义表单 */
   CUSTOM_FORM = 'customForm',
+
+  /** 市场活动表单 */
+  MARKETING_FORM = 'marketingForm',
+
+  /** 线索池 */
+  CLUE_POOL = 'cluePool',
 }
 
 // 添加员工API

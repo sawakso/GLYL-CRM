@@ -496,6 +496,25 @@
       groupList: [],
       enable: true,
     },
+    {
+      label: t('module.marketingForm'),
+      key: ModuleConfigEnum.MARKETING_FORM,
+      icon: 'iconicon_form',
+      groupList: [],
+      enable: true,
+    },
+    {
+      label: t('module.cluePool'),
+      key: ModuleConfigEnum.CLUE_POOL,
+      icon: 'iconicon_clue',
+      groupList: [
+        {
+          label: t('module.clue.cluePool'),
+          key: 'cluePoolSetting',
+        },
+      ],
+      enable: true,
+    },
   ];
 
   const moduleConfigList = computed<ModuleConfigItem[]>(() => {
@@ -633,6 +652,11 @@
           productManagementFormVisible.value = true;
         } else if (key === 'newPriceForm') {
           priceTableFormVisible.value = true;
+        }
+        break;
+      case ModuleConfigEnum.CLUE_POOL:
+        if (key === 'cluePoolSetting') {
+          clueManagementCluePoolVisible.value = true;
         }
         break;
       case ModuleConfigEnum.ORDER:

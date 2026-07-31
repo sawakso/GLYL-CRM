@@ -23,6 +23,15 @@ const router = createRouter({
         requiresAuth: false,
       },
     },
+    {
+      path: '/pub/form/:token',
+      name: 'pubForm',
+      component: () => import('@/views/pub/FormFill.vue'),
+      meta: {
+        requiresAuth: false,
+        hideInMenu: true,
+      },
+    },
     ...appRoutes,
     NO_RESOURCE_ROUTE,
     AUTH_DISABLED_ROUTE,

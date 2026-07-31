@@ -10,6 +10,7 @@ export enum SystemRouteEnum {
   SYSTEM_PROCESS = 'systemProcess',
   SYSTEM_PROCESS_INDEX = 'systemProcessIndex',
   SYSTEM_PROCESS_WORKFLOW = 'systemProcessWorkflow',
+  SYSTEM_OBJECT = 'systemObject',
 }
 
 export enum OpportunityRouteEnum {
@@ -93,6 +94,11 @@ export enum CustomFormRouteEnum {
   CUSTOM_FORM_INDEX = 'customFormIndex',
 }
 
+export enum MarketingFormRouteEnum {
+  MARKETING_FORM = 'marketingForm',
+  MARKETING_FORM_INDEX = 'marketingFormIndex',
+}
+
 export const AppRouteEnum = {
   ...SystemRouteEnum,
   ...OpportunityRouteEnum,
@@ -107,4 +113,5 @@ export const AppRouteEnum = {
   ...OrderRouteEnum,
   ...TenderRouteEnum,
   ...CustomFormRouteEnum,
+  ...MarketingFormRouteEnum,
 };

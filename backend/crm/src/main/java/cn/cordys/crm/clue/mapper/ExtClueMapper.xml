@@ -14,7 +14,16 @@
     <select id="list" resultType="cn.cordys.crm.clue.dto.response.ClueListResponse">
         select c.id, c.`name`, c.owner, c.create_time, c.update_time, c.create_user,
                c.update_user, c.collection_time, c.contact, c.phone, c.stage, c.pool_id,
-               c.follower, c.follow_time, c.last_stage, c.transition_type, c.products, c.reason_id
+               c.follower, c.follow_time, c.last_stage, c.transition_type, c.products, c.reason_id,
+               c.tel, c.mobile, c.email, c.address, c.url, c.company, c.department, c.job_title,
+               c.picture_path, c.source, c.leads_stage, c.biz_status, c.life_status, c.lock_status,
+               c.record_type, c.next_followed_time, c.next_followed_remark, c.last_follow_time,
+               c.last_follower, c.remark, c.out_owner, c.assigner_id, c.data_own_department,
+               c.owner_department, c.transform_time, c.owner_change_time, c.returned_time,
+               c.changed_to_mql_time, c.expire_time, c.conversion_probability, c.remaining_time,
+               c.is_overtime, c.is_duplicated, c.biz_reg_name, c.back_reason, c.close_reason,
+               c.completed_result, c.extend_days, c.extend_reason, c.marketing_event_id,
+               c.collected_to, c.phone_number_attribution, c.enterprise_wechat_user_id
         from `clue` c
 
         <include refid="fieldConditionJoin">
@@ -515,7 +524,16 @@
     <select id="getListByIds" resultType="cn.cordys.crm.clue.dto.response.ClueListResponse">
         select c.id, c.`name`, c.owner, c.create_time, c.update_time, c.create_user,
                c.update_user, c.collection_time, c.contact, c.phone, c.stage, c.pool_id,
-               c.follower, c.follow_time, c.last_stage, c.transition_type, c.products, c.reason_id
+               c.follower, c.follow_time, c.last_stage, c.transition_type, c.products, c.reason_id,
+               c.tel, c.mobile, c.email, c.address, c.url, c.company, c.department, c.job_title,
+               c.picture_path, c.source, c.leads_stage, c.biz_status, c.life_status, c.lock_status,
+               c.record_type, c.next_followed_time, c.next_followed_remark, c.last_follow_time,
+               c.last_follower, c.remark, c.out_owner, c.assigner_id, c.data_own_department,
+               c.owner_department, c.transform_time, c.owner_change_time, c.returned_time,
+               c.changed_to_mql_time, c.expire_time, c.conversion_probability, c.remaining_time,
+               c.is_overtime, c.is_duplicated, c.biz_reg_name, c.back_reason, c.close_reason,
+               c.completed_result, c.extend_days, c.extend_reason, c.marketing_event_id,
+               c.collected_to, c.phone_number_attribution, c.enterprise_wechat_user_id
         from `clue` c
         where id in
         <foreach collection="ids" item="id" open="(" close=")" separator=",">
@@ -581,7 +599,16 @@
     <select id="cluePoolList" resultType="cn.cordys.crm.search.response.advanced.AdvancedCluePoolResponse">
         select c.id, c.`name`, c.owner, c.create_time, c.update_time, c.create_user,
         c.update_user, c.collection_time, c.contact, c.phone, c.stage, c.pool_id,
-        c.follower, c.follow_time, c.last_stage, c.transition_type, c.products, c.reason_id
+        c.follower, c.follow_time, c.last_stage, c.transition_type, c.products, c.reason_id,
+        c.tel, c.mobile, c.email, c.address, c.url, c.company, c.department, c.job_title,
+        c.picture_path, c.source, c.leads_stage, c.biz_status, c.life_status, c.lock_status,
+        c.record_type, c.next_followed_time, c.next_followed_remark, c.last_follow_time,
+        c.last_follower, c.remark, c.out_owner, c.assigner_id, c.data_own_department,
+        c.owner_department, c.transform_time, c.owner_change_time, c.returned_time,
+        c.changed_to_mql_time, c.expire_time, c.conversion_probability, c.remaining_time,
+        c.is_overtime, c.is_duplicated, c.biz_reg_name, c.back_reason, c.close_reason,
+        c.completed_result, c.extend_days, c.extend_reason, c.marketing_event_id,
+        c.collected_to, c.phone_number_attribution, c.enterprise_wechat_user_id
         from `clue` c
 
         <include refid="fieldConditionJoin">

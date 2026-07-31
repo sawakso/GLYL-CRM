@@ -7,6 +7,7 @@ import useContractApi from '@lib/shared/api/modules/contract';
 import useCustomerApi from '@lib/shared/api/modules/customer';
 import useCustomFormApi from '@lib/shared/api/modules/customForm';
 import useFollowApi from '@lib/shared/api/modules/follow';
+import useMarketingFormApi from '@lib/shared/api/modules/marketingForm';
 import useOpportunityApi from '@lib/shared/api/modules/opportunity';
 import useOrderApi from '@lib/shared/api/modules/order';
 import useProductApi from '@lib/shared/api/modules/product';
@@ -40,6 +41,7 @@ const contractApi = useContractApi(CDR);
 const orderApi = useOrderApi(CDR);
 const agentApi = useAgentApi(CDR);
 const processApi = useProcess(CDR);
+const marketingFormApi = useMarketingFormApi(CDR);
 
 export const {
   getFollowPlanDetail,
@@ -461,3 +463,5 @@ export const {
   revokeResource,
   reviewResource,
 } = processApi;
+
+export const { getPublicMarketingForm, submitPublicMarketingForm } = marketingFormApi;

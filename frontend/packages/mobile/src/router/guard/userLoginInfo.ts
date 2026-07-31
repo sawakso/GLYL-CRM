@@ -1,11 +1,9 @@
 import { isDingTalkBrowser, isLarkBrowser, isWeComBrowser } from '@lib/shared/method';
 import { clearToken, hasToken, isLoginExpires } from '@lib/shared/method/auth';
 
-import useUser from '@/hooks/useUser';
-
 import { AppRouteEnum } from '@/enums/routeEnum';
 
-import { LOGIN_LOADING } from '../constants';
+import { LOGIN_LOADING, WHITE_LIST_NAME } from '../constants';
 import NProgress from 'nprogress';
 import type { Router } from 'vue-router';
 
@@ -13,18 +11,27 @@ export default function setupUserLoginInfoGuard(router: Router) {
   router.beforeEach(async (to, from, next) => {
     NProgress.start();
 
-    const { isWhiteListPage } = useUser();
+    // 临时调试: 打印守卫接收到的目标路由
+    console.log('[userLoginInfo guard] to.name=', to.name, 'to.path=', to.path, 'WHITE_LIST_NAME=', WHITE_LIST_NAME);
+
     // 登录过期清除token
     if (isLoginExpires()) {
       clearToken();
     }
 
     const tokenExists = hasToken();
+    console.log('[userLoginInfo guard] tokenExists=', tokenExists);
 
     // 未登录访问受限页面重定向登录页
     if (!tokenExists) {
       if (to.name === 'login') {
         // 允许主动退出后访问 login
+        next();
+        NProgress.done();
+        return;
+      }
+      // 白名单页面 (公开表单填写页等) 直接放行, 不需要登录
+      if (WHITE_LIST_NAME.includes(to.name as string)) {
         next();
         NProgress.done();
         return;
@@ -37,7 +44,7 @@ export default function setupUserLoginInfoGuard(router: Router) {
           return;
         }
         // 其他浏览器进入则到登录页面
-      } else if (to.name !== 'login' && !isWhiteListPage()) {
+      } else {
         next({ name: 'login' });
         NProgress.done();
         return;

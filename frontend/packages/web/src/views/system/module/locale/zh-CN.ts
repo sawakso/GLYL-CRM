@@ -186,4 +186,5 @@ export default {
   'module.invoice': '发票记录',
   'module.customForm': '自定义表单',
   'module.customFormData': '自定义表单数据',
+  'module.marketingForm': '市场活动表单',
 };

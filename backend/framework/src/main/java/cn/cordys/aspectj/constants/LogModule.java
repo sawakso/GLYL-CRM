@@ -158,4 +158,8 @@ public class LogModule {
      * 自定义表单数据
      */
     public static final String CUSTOM_FORM_DATA = "CUSTOM_FORM_DATA";
+    /**
+     * 市场活动表单
+     */
+    public static final String MARKETING_FORM = "MARKETING_FORM_INDEX";
 }

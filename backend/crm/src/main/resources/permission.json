@@ -716,5 +716,29 @@
         ]
       }
     ]
+  },
+  {
+    "id": "MARKETING_FORM",
+    "name": "permission.marketing_form.name",
+    "children": [
+      {
+        "id": "MARKETING_FORM",
+        "name": "permission.marketing_form.name",
+        "permissions": [
+          {
+            "id": "MARKETING_FORM:READ"
+          },
+          {
+            "id": "MARKETING_FORM:ADD"
+          },
+          {
+            "id": "MARKETING_FORM:UPDATE"
+          },
+          {
+            "id": "MARKETING_FORM:DELETE"
+          }
+        ]
+      }
+    ]
   }
 ]

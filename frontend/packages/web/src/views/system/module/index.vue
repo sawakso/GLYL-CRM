@@ -179,6 +179,16 @@
       key: ModuleConfigEnum.CUSTOM_FORM,
       icon: 'iconicon_form',
     },
+    {
+      label: t('module.marketingForm'),
+      key: ModuleConfigEnum.MARKETING_FORM,
+      icon: 'iconicon_form',
+    },
+    {
+      label: t('module.cluePool'),
+      key: ModuleConfigEnum.CLUE_POOL,
+      icon: 'iconicon_clue',
+    },
   ]);
 
   const moduleNavList = ref<ModuleNavItem[]>([]);

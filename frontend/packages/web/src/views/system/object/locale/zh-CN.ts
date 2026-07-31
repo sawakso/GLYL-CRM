@@ -1,0 +1,15 @@
+export default {
+  'objectSetting.title': '对象管理',
+  'objectSetting.searchPlaceholder': '搜索对象名称',
+  'objectSetting.objectName': '对象名称',
+  'objectSetting.defaultName': '默认名称',
+  'objectSetting.objectKey': '对象标识',
+  'objectSetting.objectType': '对象类型',
+  'objectSetting.preset': '预设',
+  'objectSetting.custom': '自定义',
+  'objectSetting.status': '状态',
+  'objectSetting.rename': '重命名',
+  'objectSetting.renamed': '已改名',
+  'objectSetting.renamePlaceholder': '输入自定义名称，留空恢复默认',
+  'menu.settings.objectSetting': '对象管理',
+};

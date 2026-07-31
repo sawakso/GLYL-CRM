@@ -31,7 +31,9 @@ export default function useUser() {
 
   const isWhiteListPage = () => {
     const currentRoute = router.currentRoute.value;
-    return WHITE_LIST.some((e) => e.path.includes(currentRoute.path));
+    return WHITE_LIST.some(
+      (e) => e.name === currentRoute.name || (e.path && currentRoute.path && currentRoute.path.startsWith(e.path))
+    );
   };
 
   return {

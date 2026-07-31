@@ -262,6 +262,53 @@ public class ModuleFormService {
     }
 
     /**
+     * 保存表单配置（不记录日志），跳过业务字段删除校验。
+     * 供没有固定业务字段(名称/负责人)的表单更新使用, 例如市场活动表单。
+     *
+     * @param saveParam     保存参数
+     * @param currentUserId 当前用户ID
+     * @param currentOrgId  当前组织ID
+     * @return 表单配置
+     */
+    public ModuleFormConfigDTO saveWithoutLogSkipBusiness(ModuleFormSaveRequest saveParam, String currentUserId, String currentOrgId) {
+        // 处理表单
+        ModuleForm form = getModuleFormByKey(saveParam.getFormKey(), currentOrgId);
+        form.setUpdateUser(currentUserId);
+        form.setUpdateTime(System.currentTimeMillis());
+        moduleFormMapper.updateById(form);
+
+        if (saveParam.getFormProp() != null) {
+            ModuleFormBlob formBlob = new ModuleFormBlob();
+            formBlob.setId(form.getId());
+            formBlob.setProp(JSON.toJSONString(saveParam.getFormProp()));
+            moduleFormBlobMapper.updateById(formBlob);
+        }
+
+        if (saveParam.getFields() != null) {
+            // 字段合规校验 (跳过业务字段删除校验)
+            preCheckForFieldSaveSkipBusiness(saveParam.getFields());
+
+            // 处理字段 (删除&&新增)
+            LambdaQueryWrapper<ModuleField> fieldWrapper = new LambdaQueryWrapper<>();
+            fieldWrapper.eq(ModuleField::getFormId, form.getId());
+            List<ModuleField> fields = moduleFieldMapper.selectListByLambda(fieldWrapper);
+            // 重置流水号
+            resetSerial(fields, saveParam.getFields(), saveParam.getFormKey(), currentOrgId);
+            if (CollectionUtils.isNotEmpty(fields)) {
+                List<String> fieldIds = fields.stream().map(ModuleField::getId).toList();
+                extModuleFieldMapper.deleteByIds(fieldIds);
+                extModuleFieldMapper.deletePropByIds(fieldIds);
+            }
+            if (CollectionUtils.isNotEmpty(saveParam.getFields())) {
+                saveFields(saveParam.getFields(), form.getId(), currentUserId);
+            }
+        }
+
+        // 返回表单配置
+        return getConfig(form.getFormKey(), currentOrgId);
+    }
+
+    /**
      * 获取字段变更日志信息（供外部调用方合并日志使用）
      *
      * @param formKey      表单Key
@@ -1583,6 +1630,30 @@ public class ModuleFormService {
         if (businessDeleted) {
             throw new GenericException(Translator.get("module.form.business_field.deleted"));
         }
+        boolean hasRepeatName = BusinessModuleField.hasRepeatName(fields);
+        if (hasRepeatName) {
+            throw new GenericException(Translator.get("module.form.fields.repeat"));
+        }
+        Optional<BaseField> repeatOptional = fields.stream().filter(field -> {
+            if (field instanceof HasOption optionField) {
+                List<OptionProp> options = optionField.getOptions();
+                return CollectionUtils.isNotEmpty(options) && hasRepeatOption(options);
+            }
+            return false;
+        }).findAny();
+        if (repeatOptional.isPresent()) {
+            BaseField field = repeatOptional.get();
+            throw new GenericException(Translator.getWithArgs("module.form.fields.option.repeat", field.getName()));
+        }
+    }
+
+    /**
+     * 仅校验字段重名和重复选项, 跳过业务字段删除校验。
+     * 供没有固定业务字段(名称/负责人)的表单使用, 例如市场活动表单(字段通过 field_mapping 映射, 无内置业务字段)。
+     *
+     * @param fields 字段集合
+     */
+    public void preCheckForFieldSaveSkipBusiness(List<BaseField> fields) {
         boolean hasRepeatName = BusinessModuleField.hasRepeatName(fields);
         if (hasRepeatName) {
             throw new GenericException(Translator.get("module.form.fields.repeat"));

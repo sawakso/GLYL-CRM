@@ -36,6 +36,7 @@
     "mermaid": "^11.16.0",
     "naive-ui": "^2.44.1",
     "nprogress": "^0.2.0",
+    "qrcode": "^1.5.4",
     "seemly": "^0.3.10",
     "sortablejs": "^1.15.7",
     "vfonts": "^0.0.3",
@@ -44,6 +45,7 @@
   },
   "devDependencies": {
     "@types/markdown-it": "^14.1.2",
+    "@types/qrcode": "^1.5.6",
     "@types/sortablejs": "^1.15.9",
     "@vitejs/plugin-legacy": "^6.0.0",
     "@vitejs/plugin-vue": "^6.0.7",

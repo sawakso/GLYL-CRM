@@ -8,6 +8,7 @@ import useCustomFormApi from '@lib/shared/api/modules/customForm';
 import useDashboard from '@lib/shared/api/modules/dashboard';
 import useFollowApi from '@lib/shared/api/modules/follow';
 import useHomeApi from '@lib/shared/api/modules/home';
+import useMarketingFormApi from '@lib/shared/api/modules/marketingForm';
 import useOpportunityApi from '@lib/shared/api/modules/opportunity';
 import useOrderApi from '@lib/shared/api/modules/order';
 import useProductApi from '@lib/shared/api/modules/product';
@@ -18,6 +19,7 @@ import useFieldMaskApi from '@lib/shared/api/modules/system/fieldMask';
 import useLoginApi from '@lib/shared/api/modules/system/login';
 import useMessageApi from '@lib/shared/api/modules/system/message';
 import useModuleApi from '@lib/shared/api/modules/system/module';
+import useObjectConfigApi from '@lib/shared/api/modules/system/objectConfig';
 import useOrgApi from '@lib/shared/api/modules/system/org';
 import useProcessApi from '@lib/shared/api/modules/system/process';
 import useRoleApi from '@lib/shared/api/modules/system/role';
@@ -54,7 +56,9 @@ const opportunityApi = useOpportunityApi(CDR);
 const contractApi = useContractApi(CDR);
 const orderApi = useOrderApi(CDR);
 const customFormApi = useCustomFormApi(CDR);
+const marketingFormApi = useMarketingFormApi(CDR);
 const processApi = useProcessApi(CDR);
+const objectConfigApi = useObjectConfigApi(CDR);
 
 export const {
   addCustomForm,
@@ -86,6 +90,17 @@ export const {
   exportCustomFormAll,
   exportCustomFormSelected,
 } = customFormApi;
+
+export const {
+  addMarketingForm,
+  updateMarketingForm,
+  getMarketingFormDetail,
+  getMarketingFormList,
+  deleteMarketingForm,
+  updateMarketingFormStatus,
+  getPublicMarketingForm,
+  submitPublicMarketingForm,
+} = marketingFormApi;
 
 export const {
   getOrderFormConfig,
@@ -877,3 +892,6 @@ export const {
   batchAgreeApproval,
   testApprovalWebHook,
 } = processApi;
+
+export const { getObjectConfigList, renameObjectConfig, switchObjectConfig, getObjectName, getObjectNameMap } =
+  objectConfigApi;

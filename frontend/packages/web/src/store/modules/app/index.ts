@@ -107,6 +107,14 @@ const defaultModuleConfig = [
     moduleKey: ModuleConfigEnum.CUSTOM_FORM,
     enable: true,
   },
+  {
+    moduleKey: ModuleConfigEnum.MARKETING_FORM,
+    enable: true,
+  },
+  {
+    moduleKey: ModuleConfigEnum.CLUE_POOL,
+    enable: true,
+  },
 ];
 
 const useAppStore = defineStore('app', {

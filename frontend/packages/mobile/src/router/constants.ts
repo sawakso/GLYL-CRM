@@ -7,8 +7,17 @@ export const NOT_FOUND = {
   },
 };
 
+// 公开表单填写页 (免登录，扫码进入)
+export const PUB_FORM = {
+  name: 'pubForm',
+  path: '/pub/form',
+  meta: {
+    requiresAuth: false,
+  },
+};
+
 // 路由白名单，无需校验权限与登录状态
-export const WHITE_LIST = [NOT_FOUND];
+export const WHITE_LIST = [NOT_FOUND, PUB_FORM];
 
 // 重定向中转站路由
 export const REDIRECT_ROUTE_NAME = 'Redirect';

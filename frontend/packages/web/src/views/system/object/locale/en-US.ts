@@ -1,0 +1,15 @@
+export default {
+  'objectSetting.title': 'Object Management',
+  'objectSetting.searchPlaceholder': 'Search object name',
+  'objectSetting.objectName': 'Object Name',
+  'objectSetting.defaultName': 'Default Name',
+  'objectSetting.objectKey': 'Object Key',
+  'objectSetting.objectType': 'Object Type',
+  'objectSetting.preset': 'Preset',
+  'objectSetting.custom': 'Custom',
+  'objectSetting.status': 'Status',
+  'objectSetting.rename': 'Rename',
+  'objectSetting.renamed': 'Renamed',
+  'objectSetting.renamePlaceholder': 'Enter custom name, leave empty to restore default',
+  'menu.settings.objectSetting': 'Object Management',
+};

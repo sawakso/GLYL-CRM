@@ -7,6 +7,7 @@ import {
   CustomerRouteEnum,
   CustomFormRouteEnum,
   DashboardRouteEnum,
+  MarketingFormRouteEnum,
   OpportunityRouteEnum,
   OrderRouteEnum,
   ProductRouteEnum,
@@ -52,6 +53,7 @@ export const featureRouteMap: Record<string, any> = {
   [AgentRouteEnum.AGENT]: ModuleConfigEnum.AGENT,
   [TenderRouteEnum.TENDER]: ModuleConfigEnum.TENDER,
   [CustomFormRouteEnum.CUSTOM_FORM]: ModuleConfigEnum.CUSTOM_FORM,
+  [MarketingFormRouteEnum.MARKETING_FORM]: ModuleConfigEnum.MARKETING_FORM,
 };
 
 export const allMenuRouteMap: Record<string, any> = {

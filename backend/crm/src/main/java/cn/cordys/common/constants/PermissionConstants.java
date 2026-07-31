@@ -260,5 +260,12 @@ public class PermissionConstants {
     public static final String CUSTOM_FORM_READ = "CUSTOM_FORM:READ";
     public static final String CUSTOM_FORM_ADD = "CUSTOM_FORM:ADD";
     /*------ end: CUSTOM_FORM ------*/
+
+    /*------ start: MARKETING_FORM ------*/
+    public static final String MARKETING_FORM_READ = "MARKETING_FORM:READ";
+    public static final String MARKETING_FORM_ADD = "MARKETING_FORM:ADD";
+    public static final String MARKETING_FORM_UPDATE = "MARKETING_FORM:UPDATE";
+    public static final String MARKETING_FORM_DELETE = "MARKETING_FORM:DELETE";
+    /*------ end: MARKETING_FORM ------*/
 }
 

@@ -105,11 +105,13 @@ import {
   getProductPrice,
   getProductPriceFormConfig,
   getProductPriceList,
+  getPublicMarketingForm,
   getQuotationDetail,
   getQuotationFormConfig,
   getQuotationList,
   getQuotationSnapshotDetail,
   getQuotationSnapshotFormConfig,
+  submitPublicMarketingForm,
   updateClue,
   updateClueFollowPlan,
   updateClueFollowRecord,
@@ -814,6 +816,7 @@ export const getFormConfigApiMap: Record<
   [FormDesignKeyEnum.CUSTOMER_ORDER]: getOrderFormConfig,
   [FormDesignKeyEnum.ORDER_SNAPSHOT]: getOrderFormSnapshotConfig,
   [FormDesignKeyEnum.CUSTOM_FORM]: getCustomFormDetail,
+  [FormDesignKeyEnum.MARKETING_FORM]: (id?: string) => getPublicMarketingForm(id ?? '') as any,
 };
 
 export const createFormApi: Record<FormDesignKeyEnum, (data: any) => Promise<any>> = {
@@ -859,6 +862,8 @@ export const createFormApi: Record<FormDesignKeyEnum, (data: any) => Promise<any
   [FormDesignKeyEnum.CONTRACT_ORDER]: async () => ({}),
   [FormDesignKeyEnum.CUSTOMER_ORDER]: async () => ({}),
   [FormDesignKeyEnum.CUSTOM_FORM]: addCustomFormData,
+  [FormDesignKeyEnum.MARKETING_FORM]: (data: any) =>
+    submitPublicMarketingForm(data.id, { moduleFields: data.moduleFields }),
 };
 
 export const updateFormApi: Record<FormDesignKeyEnum, (data: any) => Promise<any>> = {
@@ -904,6 +909,7 @@ export const updateFormApi: Record<FormDesignKeyEnum, (data: any) => Promise<any
   [FormDesignKeyEnum.CONTRACT_ORDER]: async () => ({}),
   [FormDesignKeyEnum.CUSTOMER_ORDER]: async () => ({}),
   [FormDesignKeyEnum.CUSTOM_FORM]: updateCustomFormData,
+  [FormDesignKeyEnum.MARKETING_FORM]: async () => ({}),
 };
 
 export const getFormDetailApiMap: Partial<

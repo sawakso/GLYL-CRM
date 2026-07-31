@@ -1,7 +1,6 @@
 import baseConfig from './vite.config.base';
 import { config } from 'dotenv';
 import { mergeConfig } from 'vite';
-import eslint from 'vite-plugin-eslint';
 
 // 注入本地/开发配置环境变量(先导入的配置优先级高)
 config({ path: ['.env.development.local', '.env.development'] });
@@ -33,11 +32,12 @@ export default mergeConfig(
       },
     },
     plugins: [
-      eslint({
-        cache: false,
-        include: ['src/**/*.ts', 'src/**/*.tsx', 'src/**/*.vue'],
-        exclude: ['node_modules'],
-      }),
+      // 开发时禁用 eslint 实时检查以提升速度,提交前请手动执行 pnpm lint
+      // eslint({
+      //   cache: false,
+      //   include: ['src/**/*.ts', 'src/**/*.tsx', 'src/**/*.vue'],
+      //   exclude: ['node_modules'],
+      // }),
     ],
   },
   baseConfig

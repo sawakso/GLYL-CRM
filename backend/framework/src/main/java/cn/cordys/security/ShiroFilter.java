@@ -77,6 +77,8 @@ public final class ShiroFilter {
         FILTER_CHAIN_DEFINITION_MAP.put("/get-key", "anon");
         FILTER_CHAIN_DEFINITION_MAP.put("/403", "anon");
         FILTER_CHAIN_DEFINITION_MAP.put("/sso/callback/**", "anon");
+        // 市场表单公开提交端点 (意向客户扫码填写, 免登录)
+        FILTER_CHAIN_DEFINITION_MAP.put("/pub/**", "anon");
     }
 
     /**

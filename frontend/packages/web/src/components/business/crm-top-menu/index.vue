@@ -19,6 +19,7 @@
   import { useI18n } from '@lib/shared/hooks/useI18n';
   import { listenerRouteChange } from '@lib/shared/method/route-listener';
 
+  import useObjectName from '@/hooks/useObjectName';
   import usePermission from '@/hooks/usePermission';
   import appClientMenus from '@/router/app-menus';
   import useAppStore from '@/store/modules/app';
@@ -26,6 +27,10 @@
 
   const { t } = useI18n();
   const permission = usePermission();
+  const { initObjectNameMap, getObjectNameByRoute } = useObjectName();
+
+  // 应用启动时加载对象名称映射
+  initObjectNameMap();
 
   const copyRouters = cloneDeep(appClientMenus) as RouteRecordRaw[];
 
@@ -36,9 +41,11 @@
   const topMenuList = computed<MenuOption[]>(() => {
     return appStore.getTopMenus
       .map((e: any) => {
+        const routeName = e.name as string;
+        const i18nLabel = t(e?.meta?.locale ?? '');
         return {
-          key: e.name,
-          label: t(e?.meta?.locale ?? ''),
+          key: routeName,
+          label: getObjectNameByRoute(routeName, i18nLabel),
           hasPermission: hasAnyPermission(e?.meta?.permissions),
         };
       })
@@ -129,7 +136,7 @@
       .n-menu-item {
         height: 32px !important;
         &.crm-top-menu-selected-item {
-          border-radius: --border-radius-small;
+          border-radius: var(--border-radius-small);
           background: var(--primary-7);
         }
         .n-menu-item-content {
