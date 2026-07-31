@@ -21,6 +21,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-error.log*
+logs/
+*.log
 
 ############################
 # IDE / Editor
@@ -57,17 +59,44 @@ pnpm-error.log*
 # Build Output
 ############################
 
-target
+target/
+node_modules/
+dist/
+build/
+*.jar
+*.war
+*.ear
 .jython_cache
 
 ############################
 # Static Resources (ignored)
 ############################
 
-src/main/resources/static
-src/main/resources/templates
+src/main/resources/static/
+src/main/resources/templates/
 /backend/crm/src/main/resources/static/
 /backend/app/src/main/resources/static/
+
+############################
+# Local Tools & Temp Files
+############################
+
+# AI 辅助工具
+.agents/
+.workbuddy/
+.zcode/
+
+# Claude Code
+.claude
+
+# 需求文档（内部文档）
+需求/
+
+# 系统文件
+nul
+Thumbs.db
+*.tmp
+*.temp
 
 ############################
 # Custom Files
@@ -75,11 +104,3 @@ src/main/resources/templates
 
 qywx.json
 .gitattributes
-
-# Claude Code
-.claude
-
-# Local agent plans and runtime logs
-.zcode/
-logs/
-*.log
