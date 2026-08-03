@@ -14,10 +14,12 @@
   import useLoading from '@/hooks/useLoading';
   import useUser from '@/hooks/useUser';
   import useUserStore from '@/store/modules/user';
+  import useAppStore from '@/store/modules/app';
 
   const { t } = useI18n();
 
   const userStore = useUserStore();
+  const appStore = useAppStore();
   const { goUserHasPermissionPage } = useUser();
   const { setLoading } = useLoading();
 
@@ -52,6 +54,7 @@
         const dingCallback = getThirdCallback(authCode, 'ding-talk', state);
         const boolean = await userStore.qrCodeLogin(await dingCallback);
         if (boolean) {
+          await appStore.initModuleConfig();
           setLoginExpires();
           setLoginType('DINGTALK');
           Message.success(t('login.form.login.success'));

@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.Strings;
 import org.apache.shiro.SecurityUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -47,6 +48,12 @@ public class LoginController {
     public SessionUser isLogin() {
         SessionUser user = SessionUtils.getUser();
         if (user != null) {
+            // 复用当前会话已确定的组织ID, 避免 is-login 重新推断时
+            // 因 lastOrganizationId 未落库而拿到空的权限集合
+            if (StringUtils.hasText(user.getLastOrganizationId())) {
+                OrganizationContext.setOrganizationId(user.getLastOrganizationId());
+            }
+
             // 检查当前组织的手机认证配置
             userLoginService.checkMobileAuthConfig(OrganizationContext.getOrganizationId());
 

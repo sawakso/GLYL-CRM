@@ -9,6 +9,9 @@
         <result property="conditions" column="conditions"/>
         <result property="assignType" column="assign_type"/>
         <result property="targetUserIds" column="target_user_ids"/>
+        <result property="assignTargetType" column="assign_target_type"/>
+        <result property="targetDeptIds" column="target_dept_ids"/>
+        <result property="includeChildDept" column="include_child_dept"/>
         <result property="currentIndex" column="current_index"/>
         <result property="pos" column="pos"/>
         <result property="enable" column="enable"/>
@@ -21,12 +24,14 @@
 
     <insert id="batchInsert">
         insert into clue_pool_assign_rule
-        (id, pool_id, rule_name, conditions, assign_type, target_user_ids, current_index, pos, enable,
+        (id, pool_id, rule_name, conditions, assign_type, target_user_ids, assign_target_type,
+         target_dept_ids, include_child_dept, current_index, pos, enable,
          organization_id, create_time, update_time, create_user, update_user)
         values
         <foreach collection="rules" item="rule" separator=",">
             (#{rule.id}, #{rule.poolId}, #{rule.ruleName}, #{rule.conditions}, #{rule.assignType},
-             #{rule.targetUserIds}, #{rule.currentIndex}, #{rule.pos}, #{rule.enable},
+             #{rule.targetUserIds}, #{rule.assignTargetType},
+             #{rule.targetDeptIds}, #{rule.includeChildDept}, #{rule.currentIndex}, #{rule.pos}, #{rule.enable},
              #{rule.organizationId}, #{rule.createTime}, #{rule.updateTime}, #{rule.createUser}, #{rule.updateUser})
         </foreach>
     </insert>

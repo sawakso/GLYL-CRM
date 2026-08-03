@@ -212,6 +212,8 @@
           if (licenseStore.hasLicense()) {
             appStore.initPageConfig();
           }
+          // 确保模块配置加载完成后再跳转路由守卫判断（避免 moduleConfigList 为空导致误判无权限）
+          await appStore.initModuleConfig();
           setLoginExpires();
           setLoginType(userInfo.value.authenticate);
           Message.success(t('login.form.login.success'));

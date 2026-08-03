@@ -165,6 +165,39 @@
     ></n-input>
     <div class="text-[12px] leading-[20px] text-[var(--text-n4)]">{{ t('crmFormDesign.batchEditTip') }}</div>
   </CrmModal>
+  <!-- 引用其他表单：选择要引用的具体字段 -->
+  <CrmModal
+    v-model:show="fieldSelectVisible"
+    :title="`选择要引用的「${selectedFormLabel}」字段`"
+    :positive-text="t('common.save')"
+    @confirm="handleFieldSelectConfirm"
+  >
+    <div class="mb-[8px] text-[13px] text-[var(--text-n4)]">
+      勾选的字段会拼接展示在每条记录上（如：名称 · 价格 · 状态），可多选。
+    </div>
+    <n-input
+      v-model:value="fieldKeyword"
+      :placeholder="t('common.search')"
+      clearable
+      class="mb-[8px]"
+    />
+    <div class="flex max-h-[300px] flex-col gap-[8px] overflow-auto pr-[4px]">
+      <label
+        v-for="f in filteredFieldOptions"
+        :key="f.id"
+        class="flex cursor-pointer items-center gap-[8px]"
+      >
+        <n-checkbox
+          :checked="tempSelectedFieldIds.includes(f.id)"
+          @update:checked="(c) => toggleTempField(f, c)"
+        />
+        <span class="text-[14px]">{{ f.name }}</span>
+      </label>
+      <div v-if="filteredFieldOptions.length === 0" class="py-[8px] text-center text-[13px] text-[var(--text-n4)]">
+        {{ t('common.noData') }}
+      </div>
+    </div>
+  </CrmModal>
 </template>
 
 <script setup lang="ts">
@@ -225,6 +258,13 @@
   const refRecords = ref<FormCreateFieldOption[]>([]);
   // 当前选中的数据来源表单名称，用于展示"勾选提示"
   const selectedFormLabel = ref<string>('');
+  // 选中"数据来源表单"后拉取到的原始数据记录（用于按字段重新拼接 label）
+  const rawRefRecords = ref<any[]>([]);
+  // 引用字段选择弹窗相关
+  const fieldSelectVisible = ref(false);
+  const fieldSelectOptions = ref<FormCreateField[]>([]);
+  const tempSelectedFieldIds = ref<string[]>([]);
+  const fieldKeyword = ref('');
 
   // 各模块记录对应的"名称"字段，用于把数据记录转成选项 label
   const formNameFieldMap: Record<string, string> = {
@@ -245,36 +285,61 @@
   };
 
   // 拉取某个"数据来源表单"的全部数据记录，转成 { label, value } 选项
-  // 后端限制：pageNum 必须 > 0，pageSize 不能超过 500，故分页拉取
-  async function getRefRecords(rootNode: any): Promise<FormCreateFieldOption[]> {
+  // 后端限制：current 必须 > 0，pageSize 不能超过 500，故分页拉取
+  async function getRefRecords(rootNode: any, fields?: FormCreateField[]): Promise<FormCreateFieldOption[]> {
     const dataSource = rootNode?.dataSource as FieldDataSourceTypeEnum | undefined;
     if (!dataSource) return [];
     const api = sourceApi[dataSource];
     if (!api) return [];
-    const nameKey = formNameFieldMap[rootNode.formKey as FormDesignKeyEnum];
+    const formKey = rootNode.formKey as FormDesignKeyEnum;
     const PAGE_SIZE = 500;
     const MAX_PAGES = 100; // 安全上限，防止后端异常导致死循环
-    const result: FormCreateFieldOption[] = [];
+    const rawList: any[] = [];
     try {
       for (let current = 1; current <= MAX_PAGES; current++) {
         const res: any = await api({ current, pageSize: PAGE_SIZE });
         const list: any[] = res?.list || [];
         if (list.length === 0) break;
-        for (const record of list) {
-          result.push({
-            label: record[nameKey] || record.name || record.id,
-            value: record.id,
-          });
-        }
+        rawList.push(...list);
         // 返回条数小于页大小，说明已是最后一页
         if (list.length < PAGE_SIZE) break;
       }
-      return result;
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('[optionConfig] getRefRecords failed', error);
       return [];
     }
+    rawRefRecords.value = rawList;
+    return rawList.map((record) => ({
+      label: buildRecordLabel(record, fields, formKey),
+      value: record.id,
+    }));
+  }
+
+  // 取某条记录在某个字段上的展示值（选项类字段做 值->label 映射）
+  function getFieldDisplayValue(record: any, field: FormCreateField): string {
+    const raw =
+      record?.[field.internalKey as string] ??
+      record?.[field.businessKey as string] ??
+      record?.[field.name as string];
+    if (raw == null) return '';
+    if ((field.type === FieldTypeEnum.RADIO || field.type === FieldTypeEnum.SELECT) && field.options?.length) {
+      const matched = field.options.find((o) => String(o.value) === String(raw));
+      if (matched) return matched.label;
+    }
+    return String(raw);
+  }
+
+  // 按选中的字段列表拼接一条记录的 label
+  function buildRecordLabel(record: any, fields: FormCreateField[] | undefined, formKey?: string): string {
+    if (!fields || fields.length === 0) {
+      const nameKey = formKey ? formNameFieldMap[formKey as FormDesignKeyEnum] : undefined;
+      return (nameKey && record?.[nameKey]) || record?.name || record?.id || '';
+    }
+    const parts = fields.map((f) => getFieldDisplayValue(record, f)).filter((v) => v !== '');
+    if (parts.length) return parts.join(' · ');
+    const nameKey = formKey ? formNameFieldMap[formKey as FormDesignKeyEnum] : undefined;
+    return (nameKey && record?.[nameKey]) || record?.name || record?.id || '';
   }
 
   // 获取第二层的数据
@@ -318,11 +383,13 @@
   }
 
   // 更新第一层父节点的值，传入后端，方便后期回显
-  async function updateFormKeyFromCascader(childValue: string) {
+  async function updateFormKeyFromCascader(childValue: string, isUserAction = true) {
     if (!childValue) {
       fieldConfig.value.refFormKey = '';
+      fieldConfig.value.refFields = [];
       fieldConfig.value.options = [];
       refRecords.value = [];
+      rawRefRecords.value = [];
       selectedFormLabel.value = '';
       return;
     }
@@ -333,14 +400,21 @@
       return;
     }
     fieldConfig.value.refFormKey = path.treePath[0].value as string;
+    // 引用「数据记录」场景不使用 refId（refId 用于旧版「引用选项字段」且指向字段 blob），必须留空，否则后端会清空 options
+    fieldConfig.value.refId = '';
     if (path.treePath.length === 1 && path.treePath[0].dataSource) {
-      // 选中了"数据来源表单"根节点 → 拉取该表单的全部数据记录作为"勾选池"，由用户自行挑选
+      // 选中了"数据来源表单"根节点 → 拉取该表单全部数据记录作为"勾选池"，由用户自行挑选
       const rootNode = path.treePath[0];
       selectedFormLabel.value = (rootNode.label as string) || '';
-      refRecords.value = await getRefRecords(rootNode);
+      const savedFields = fieldConfig.value.refFields || [];
+      refRecords.value = await getRefRecords(rootNode, savedFields);
       // 仅保留仍存在于勾选池中的已选项，避免脏数据
       const validValues = new Set(refRecords.value.map((r) => r.value));
       fieldConfig.value.options = (fieldConfig.value.options || []).filter((o) => validValues.has(o.value));
+      // 弹窗：让用户选择要引用该表单的哪些字段（仅用户主动操作时弹出，回填不弹）
+      if (isUserAction) {
+        await openFieldSelectModal(rootNode);
+      }
     } else if (path.treePath.length === 1) {
       // 普通表单根节点（非数据来源，理论上不可直接选中）
       fieldConfig.value.options = [];
@@ -365,15 +439,80 @@
     }
   }
 
+  // 打开"引用字段"选择弹窗：列出该表单所有数据字段，供用户勾选要引用哪些
+  async function openFieldSelectModal(rootNode: any) {
+    const formKey = rootNode.formKey as FormDesignKeyEnum;
+    try {
+      const res = await getFormDesignConfig(formKey);
+      fieldSelectOptions.value = (res.fields || []).filter(
+        (f) =>
+          ![
+            FieldTypeEnum.DIVIDER,
+            FieldTypeEnum.ATTACHMENT,
+            FieldTypeEnum.SUB_PRICE,
+            FieldTypeEnum.SUB_PRODUCT,
+          ].includes(f.type)
+      );
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('[optionConfig] getFormFields failed', error);
+      fieldSelectOptions.value = [];
+    }
+    const savedIds = (fieldConfig.value.refFields || []).map((f) => f.id);
+    tempSelectedFieldIds.value = savedIds.length
+      ? savedIds
+      : fieldSelectOptions.value.map((f) => f.id);
+    fieldKeyword.value = '';
+    fieldSelectVisible.value = true;
+  }
+
+  // 弹窗确定：保存选中的引用字段，并按最新字段重新拼接记录 label
+  function handleFieldSelectConfirm() {
+    const selected = fieldSelectOptions.value.filter((f) => tempSelectedFieldIds.value.includes(f.id));
+    fieldConfig.value.refFields = selected;
+    const formKey = fieldConfig.value.refFormKey as FormDesignKeyEnum;
+    refRecords.value = rawRefRecords.value.map((record) => ({
+      value: record.id,
+      label: buildRecordLabel(record, selected, formKey),
+    }));
+    // 同步已选入表单的选项 label
+    if (fieldConfig.value.options) {
+      fieldConfig.value.options = fieldConfig.value.options.map((o) => ({
+        ...o,
+        label: refRecords.value.find((r) => r.value === o.value)?.label || o.label,
+      }));
+    }
+    fieldSelectVisible.value = false;
+  }
+
+  // 弹窗内勾选/取消某个字段
+  function toggleTempField(field: FormCreateField, checked: boolean) {
+    const idx = tempSelectedFieldIds.value.indexOf(field.id);
+    if (checked && idx === -1) {
+      tempSelectedFieldIds.value = [...tempSelectedFieldIds.value, field.id];
+    } else if (!checked && idx > -1) {
+      const next = [...tempSelectedFieldIds.value];
+      next.splice(idx, 1);
+      tempSelectedFieldIds.value = next;
+    }
+  }
+
+  const filteredFieldOptions = computed(() => {
+    const kw = fieldKeyword.value.trim().toLowerCase();
+    if (!kw) return fieldSelectOptions.value;
+    return fieldSelectOptions.value.filter((f) => f.name.toLowerCase().includes(kw));
+  });
+
   // 初始化回显
   async function initEchoByPath(rootValue: string) {
     const rootOpt = refOptions.value.find((opt) => opt.value === rootValue);
     if (!rootOpt) return;
     if (rootOpt.dataSource) {
       // 数据来源表单：回填级联选中值，并补拉全部数据记录作为勾选池（options 已随字段保存）
-      fieldConfig.value.refId = rootValue;
+      // 注意：refId 必须留空（它用于旧版「引用选项字段」，指向被引用字段 blob）。本场景用 refFormKey 标识，options 为数据快照。
+      fieldConfig.value.refId = '';
       selectedFormLabel.value = (rootOpt.label as string) || '';
-      refRecords.value = await getRefRecords(rootOpt);
+      refRecords.value = await getRefRecords(rootOpt, fieldConfig.value.refFields || []);
       const validValues = new Set(refRecords.value.map((r) => r.value));
       if (!fieldConfig.value.options) fieldConfig.value.options = [];
       fieldConfig.value.options = fieldConfig.value.options.filter((o) => validValues.has(o.value));
@@ -400,7 +539,7 @@
       if (val === 'ref') {
         if (fieldConfig.value.refFormKey && fieldConfig.value.refId) {
           await initEchoByPath(fieldConfig.value.refFormKey);
-          updateFormKeyFromCascader(fieldConfig.value.refId);
+          updateFormKeyFromCascader(fieldConfig.value.refId, false);
         } else {
           fieldConfig.value.options = [];
         }

@@ -51,4 +51,10 @@ public interface HasOption {
 	 * @return 选项引用ID
 	 */
 	String getRefId();
+
+	/**
+	 * 获取引用表单key (optionSource=ref 时生效)
+	 * @return 引用表单key
+	 */
+	String getRefFormKey();
 }

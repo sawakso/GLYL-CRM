@@ -13,6 +13,7 @@
   import useLoading from '@/hooks/useLoading';
   import useUser from '@/hooks/useUser';
   import useUserStore from '@/store/modules/user';
+  import useAppStore from '@/store/modules/app';
 
   import * as ww from '@wecom/jssdk';
   import { WWLoginErrorResp, WWLoginPanelSizeType, WWLoginRedirectType, WWLoginType } from '@wecom/jssdk';
@@ -23,6 +24,7 @@
   const { setLoading } = useLoading();
 
   const userStore = useUserStore();
+  const appStore = useAppStore();
   const Message = useMessage();
 
   const wwLogin = ref({});
@@ -51,6 +53,7 @@
         const weComCallback = getThirdCallback(code, 'wecom', state);
         const boolean = userStore.qrCodeLogin(await weComCallback);
         if (boolean) {
+          await appStore.initModuleConfig();
           setLoginExpires();
           setLoginType('WECOM');
           Message.success(t('login.form.login.success'));

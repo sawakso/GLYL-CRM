@@ -31,7 +31,10 @@ export interface UserState {
 }
 
 const useUserStore = defineStore('user', {
-  persist: true,
+  // 不持久化 userInfo (含 permissionIds 等易变/敏感数据), 避免 localStorage 旧权限残留导致菜单/路由守卫误判
+  persist: {
+    paths: ['loginType'],
+  },
   state: (): UserState => ({
     loginType: [],
     userInfo: {

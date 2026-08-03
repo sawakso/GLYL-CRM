@@ -32,6 +32,7 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotEmpty;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.shiro.authz.annotation.Logical;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.validation.annotation.Validated;
@@ -54,7 +55,7 @@ public class PoolClueController {
 
     @GetMapping("/options")
     @Operation(summary = "获取当前用户线索池选项")
-    @RequiresPermissions(value = {PermissionConstants.CLUE_MANAGEMENT_POOL_READ})
+    @RequiresPermissions(value = {PermissionConstants.CLUE_MANAGEMENT_POOL_READ, PermissionConstants.MARKETING_FORM_READ}, logical = Logical.OR)
     public List<CluePoolDTO> getPoolOptions() {
         return poolClueService.getPoolOptions(SessionUtils.getUserId(), OrganizationContext.getOrganizationId());
     }

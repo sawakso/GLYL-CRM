@@ -863,15 +863,30 @@ public class ModuleFormService {
                 of.setOptions(of.getCustomOptions());
             }
         } else {
-            // 引用字段选项, 清空再替换
+            // 引用字段选项
+            // 新场景：引用「表单数据记录」(refFormKey 有值且 refId 为空, options 为设计器写入的数据记录快照)，直接保留 options，不再清空/替换
+            if (StringUtils.isNotBlank(of.getRefFormKey()) && StringUtils.isBlank(of.getRefId())
+                    && CollectionUtils.isNotEmpty(of.getOptions())) {
+                return;
+            }
+            // refId 为空时不查库：主键为空会导致 SQL 异常，进而使整个公开表单接口 500、填写页全部空白
+            if (StringUtils.isBlank(of.getRefId())) {
+                return;
+            }
+            // 旧场景：引用其他表单的「选项字段」(通过 refId 指向被引用字段)，清空再替换
             of.setOptions(new ArrayList<>());
             String refId = of.getRefId();
-            ModuleFieldBlob fieldBlob = moduleFieldBlobMapper.selectByPrimaryKey(refId);
-            if (fieldBlob != null) {
-                BaseField refField = JSON.parseObject(fieldBlob.getProp(), BaseField.class);
-                if (refField instanceof HasOption refOption) {
-                    of.setOptions(CollectionUtils.isNotEmpty(refOption.getOptions()) ? refOption.getOptions() : refOption.getCustomOptions());
+            try {
+                ModuleFieldBlob fieldBlob = moduleFieldBlobMapper.selectByPrimaryKey(refId);
+                if (fieldBlob != null) {
+                    BaseField refField = JSON.parseObject(fieldBlob.getProp(), BaseField.class);
+                    if (refField instanceof HasOption refOption) {
+                        of.setOptions(CollectionUtils.isNotEmpty(refOption.getOptions()) ? refOption.getOptions() : refOption.getCustomOptions());
+                    }
                 }
+            } catch (Exception e) {
+                // 引用字段主键非法(如脏数据 refId 非空但不是合法主键)时，避免整页表单加载失败，仅该字段无选项
+                log.error("引用选项字段查询失败, refId={}", refId, e);
             }
         }
     }

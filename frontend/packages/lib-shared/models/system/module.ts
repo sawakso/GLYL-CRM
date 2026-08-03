@@ -107,9 +107,12 @@ export interface CluePoolRecycleRuleParams {
 
 // 线索池分配规则匹配条件
 export interface AssignRuleCondition {
-  fieldId: string; // 自定义字段ID
-  operator: string; // 操作符: EQUALS/NOT_EQUALS/CONTAINS
-  value: string; // 匹配值
+  fieldId: string; // 自定义字段ID(内容字段) 或 时间字段哨兵(CLUE_CREATE_TIME)
+  operator: string; // 操作符: EQUALS/NOT_EQUALS/CONTAINS 或 BEFORE/AFTER/BETWEEN
+  value: string; // 匹配值(内容) 或 时间(起始,毫秒时间戳字符串)
+  conditionType?: 'FIELD' | 'TIME'; // 条件类型: FIELD(内容字段)/TIME(时间判断)
+  value2?: string; // 时间区间结束值(BETWEEN 用,毫秒时间戳字符串)
+  timeRange?: number | number[] | null; // 仅前端使用: BETWEEN 时间区间选择器绑定
 }
 
 // 线索池分配规则
@@ -119,7 +122,11 @@ export interface CluePoolAssignRuleParams {
   ruleName?: string; // 规则名称
   conditionList?: AssignRuleCondition[]; // 匹配条件
   assignType: string; // 分配方式: SINGLE/ROUND_ROBIN
-  targetUserNames?: SelectedUsersItem[]; // 目标人员(回显)
+  assignTargetType?: 'USER' | 'DEPT'; // 目标类型: USER(指定人员)/DEPT(按部门动态解析)
+  targetUserNames?: SelectedUsersItem[]; // 目标人员(回显, USER 模式)
+  targetDeptNames?: SelectedUsersItem[]; // 目标部门名称(回显, DEPT 模式, 仅前端使用)
+  targetDeptIds?: string[]; // 目标部门ID(DEPT 模式)
+  includeChildDept?: boolean; // 部门目标是否含子部门
   currentIndex?: number; // 循环分配指针
   pos?: number; // 排序
   enable?: boolean; // 启用/禁用
@@ -156,6 +163,8 @@ export interface CluePoolParams {
   pickRule: CluePoolPickRuleParams; // 领取规则
   recycleRule: CluePoolRecycleRuleParams; // 回收规则
   assignRules: CluePoolAssignRuleParams[]; // 分配规则集合
+  autoAssignEnabled?: boolean; // 是否开启定时自动分配
+  autoAssignCron?: string; // 定时自动分配 cron 表达式
   hiddenFieldIds: string[]; // 隐藏的表格字段
 }
 
@@ -207,6 +216,8 @@ export interface CluePoolItem {
   pickRule: CluePoolPickRuleParams; // 领取规则
   recycleRule: CluePoolRecycleRuleParams; // 回收规则
   assignRules?: CluePoolAssignRuleParams[]; // 分配规则集合
+  autoAssignEnabled?: boolean; // 是否开启定时自动分配
+  autoAssignCron?: string; // 定时自动分配 cron 表达式
   currentClueCount?: number; // 当前线索数量
   fieldConfigs: {
     editable: boolean;

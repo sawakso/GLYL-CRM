@@ -147,8 +147,21 @@ public class UserLoginService {
         // 获取用户所属组织列表
         Set<String> orgIds = getUserOrganizations(userDTO.getId());
 
+        // 记录数据库中的原始组织ID, 用于判断是否发生了推断变化
+        String originalLastOrg = userDTO.getLastOrganizationId();
+
         // 确定当前使用的组织ID
         String organizationId = determineOrganizationId(userDTO, orgIds);
+
+        // 将推断出的有效组织ID回写到用户表, 避免后续 is-login 等无会话场景
+        // 因 last_organization_id 为空而重新推断失败, 导致角色/权限匹配不上
+        if (StringUtils.isNotBlank(organizationId)
+                && !Strings.CS.equals(organizationId, originalLastOrg)) {
+            User userOrgUpdate = new User();
+            userOrgUpdate.setId(userDTO.getId());
+            userOrgUpdate.setLastOrganizationId(organizationId);
+            userMapper.update(userOrgUpdate);
+        }
 
         // 设置用户权限和角色信息
         setupUserPermissions(userDTO, organizationId, orgIds);

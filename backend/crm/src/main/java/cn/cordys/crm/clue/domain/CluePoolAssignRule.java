@@ -4,6 +4,7 @@ import cn.cordys.common.domain.BaseModel;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Table;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 线索池分配规则
@@ -13,6 +14,7 @@ import lombok.Data;
  * @see cn.cordys.crm.clue.service.CluePoolAssignRuleService
  */
 @Data
+@NoArgsConstructor
 @Table(name = "clue_pool_assign_rule")
 public class CluePoolAssignRule extends BaseModel {
 
@@ -28,8 +30,17 @@ public class CluePoolAssignRule extends BaseModel {
     @Schema(description = "分配方式: SINGLE(仅分配给某人)/ROUND_ROBIN(循环分配)")
     private String assignType;
 
-    @Schema(description = "目标用户ID JSON数组")
+    @Schema(description = "目标类型: USER(指定人员)/DEPT(部门成员)")
+    private String assignTargetType;
+
+    @Schema(description = "目标用户ID JSON数组(assignTargetType=USER 时使用)")
     private String targetUserIds;
+
+    @Schema(description = "目标部门ID JSON数组(assignTargetType=DEPT 时按部门动态解析成员)")
+    private String targetDeptIds;
+
+    @Schema(description = "目标部门是否包含子部门(assignTargetType=DEPT 时生效)")
+    private Boolean includeChildDept;
 
     @Schema(description = "循环分配当前指针")
     private Integer currentIndex;

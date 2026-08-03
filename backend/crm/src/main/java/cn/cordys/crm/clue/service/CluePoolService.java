@@ -24,6 +24,7 @@ import cn.cordys.crm.clue.dto.CluePoolRecycleRuleDTO;
 import cn.cordys.crm.clue.dto.request.CluePoolAddRequest;
 import cn.cordys.crm.clue.dto.request.CluePoolUpdateRequest;
 import cn.cordys.crm.clue.mapper.ExtCluePoolMapper;
+import cn.cordys.crm.clue.schedule.CluePoolAssignScheduler;
 import cn.cordys.crm.system.constants.RecycleConditionColumnKey;
 import cn.cordys.crm.system.constants.RecycleConditionOperator;
 import cn.cordys.crm.system.constants.RecycleConditionScopeKey;
@@ -70,6 +71,8 @@ public class CluePoolService {
     private ModuleFormCacheService moduleFormCacheService;
     @Resource
     private CluePoolAssignRuleService cluePoolAssignRuleService;
+    @Resource
+    private CluePoolAssignScheduler cluePoolAssignScheduler;
 
     /**
      * 分页获取线索池
@@ -267,6 +270,9 @@ public class CluePoolService {
         // 保存分配规则
         cluePoolAssignRuleService.saveRules(pool.getId(), request.getAssignRules(), currentUserId, currentOrgId);
 
+        // 定时自动分配:注册或移除(池已落库,使用最新值)
+        syncAutoAssignSchedule(pool);
+
         // 添加日志上下文
         OperationLogContext.setContext(LogContextInfo.builder()
                 .modifiedValue(pool)
@@ -324,6 +330,9 @@ public class CluePoolService {
         if (request.getAssignRules() != null) {
             cluePoolAssignRuleService.saveRules(pool.getId(), request.getAssignRules(), currentUserId, currentOrgId);
         }
+
+        // 定时自动分配:注册或移除(使用最新值)
+        syncAutoAssignSchedule(pool);
 
         OperationLogContext.setContext(
                 LogContextInfo.builder()
@@ -389,8 +398,25 @@ public class CluePoolService {
         deleteCluePoolHiddenFieldByPoolId(id);
         cluePoolAssignRuleService.deleteByPoolId(id, currentOrgId);
 
+        // 移除定时自动分配任务
+        cluePoolAssignScheduler.remove(id);
+
         // 设置操作对象
         OperationLogContext.setResourceName(Translator.get("module.clue.pool.setting"));
+    }
+
+    /**
+     * 同步线索池的定时自动分配调度:
+     * 启用且配置了 cron 则注册/更新任务,否则移除已有任务。
+     *
+     * @param pool 线索池(需含 id/autoAssignEnabled/autoAssignCron/organizationId/ownerId)
+     */
+    private void syncAutoAssignSchedule(CluePool pool) {
+        if (Boolean.TRUE.equals(pool.getAutoAssignEnabled()) && StringUtils.isNotBlank(pool.getAutoAssignCron())) {
+            cluePoolAssignScheduler.registerOrUpdate(pool);
+        } else {
+            cluePoolAssignScheduler.remove(pool.getId());
+        }
     }
 
     /**

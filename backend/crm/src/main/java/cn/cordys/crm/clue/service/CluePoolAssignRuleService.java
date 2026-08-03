@@ -14,6 +14,7 @@ import cn.cordys.crm.clue.dto.AssignRuleConditionDTO;
 import cn.cordys.crm.clue.dto.CluePoolAssignRuleDTO;
 import cn.cordys.crm.clue.mapper.ExtCluePoolAssignRuleMapper;
 import cn.cordys.crm.system.dto.ScopeNameDTO;
+import cn.cordys.crm.system.mapper.ExtDepartmentMapper;
 import cn.cordys.crm.system.service.UserExtendService;
 import cn.cordys.mybatis.BaseMapper;
 import cn.cordys.mybatis.lambda.LambdaQueryWrapper;
@@ -61,6 +62,8 @@ public class CluePoolAssignRuleService {
     private PoolClueService poolClueService;
     @Resource
     private ClueFieldService clueFieldService;
+    @Resource
+    private ExtDepartmentMapper extDepartmentMapper;
 
     /**
      * 保存线索池的分配规则(先删后插)
@@ -72,6 +75,7 @@ public class CluePoolAssignRuleService {
      */
     public void saveRules(String poolId, List<CluePoolAssignRuleDTO> rules, String currentUserId, String currentOrgId) {
         checkPoolBelongsToOrganization(poolId, currentOrgId);
+        log.warn("DEBUG saveRules poolId={} rules.size={} raw={}", poolId, rules == null ? "null" : rules.size(), JSON.toJSONString(rules));
         if (CollectionUtils.isEmpty(rules)) {
             extCluePoolAssignRuleMapper.deleteByPoolId(poolId, currentOrgId);
             return;
@@ -145,8 +149,16 @@ public class CluePoolAssignRuleService {
         if (!single && !roundRobin) {
             throw invalidRule("assignRules.assignType");
         }
-        if ((single && userIds.size() != 1) || (roundRobin && userIds.isEmpty())) {
-            throw invalidRule("assignRules.targetUserNames");
+        // DEPT 目标:用户名单由部门动态解析,只校验目标部门;USER 目标:校验指定人员
+        boolean deptTarget = Strings.CS.equals(dto.getAssignTargetType(), CluePoolAssignConstants.ASSIGN_TARGET_TYPE_DEPT);
+        if (deptTarget) {
+            if (StringUtils.isBlank(dto.getTargetDeptIds())) {
+                throw invalidRule("assignRules.targetDeptIds");
+            }
+        } else {
+            if ((single && userIds.size() != 1) || (roundRobin && userIds.isEmpty())) {
+                throw invalidRule("assignRules.targetUserNames");
+            }
         }
         if (CollectionUtils.isEmpty(dto.getConditionList())) {
             return;
@@ -155,11 +167,17 @@ public class CluePoolAssignRuleService {
             if (condition == null || StringUtils.isBlank(condition.getFieldId())) {
                 throw invalidRule("assignRules.conditionList.fieldId");
             }
-            if (StringUtils.isBlank(condition.getOperator()) || !isSupportedOperator(condition.getOperator())) {
+            boolean timeType = Strings.CS.equals(condition.getConditionType(), CluePoolAssignConstants.CONDITION_TYPE_TIME);
+            if (StringUtils.isBlank(condition.getOperator())
+                    || (timeType ? !isSupportedTimeOperator(condition.getOperator()) : !isSupportedOperator(condition.getOperator()))) {
                 throw invalidRule("assignRules.conditionList.operator");
             }
             if (StringUtils.isBlank(condition.getValue())) {
                 throw invalidRule("assignRules.conditionList.value");
+            }
+            if (timeType && Strings.CS.equals(condition.getOperator(), CluePoolAssignConstants.OPERATOR_BETWEEN)
+                    && StringUtils.isBlank(condition.getValue2())) {
+                throw invalidRule("assignRules.conditionList.value2");
             }
         }
     }
@@ -168,6 +186,12 @@ public class CluePoolAssignRuleService {
         return Strings.CS.equals(operator, CluePoolAssignConstants.OPERATOR_EQUALS)
                 || Strings.CS.equals(operator, CluePoolAssignConstants.OPERATOR_NOT_EQUALS)
                 || Strings.CS.equals(operator, CluePoolAssignConstants.OPERATOR_CONTAINS);
+    }
+
+    private boolean isSupportedTimeOperator(String operator) {
+        return Strings.CS.equals(operator, CluePoolAssignConstants.OPERATOR_BEFORE)
+                || Strings.CS.equals(operator, CluePoolAssignConstants.OPERATOR_AFTER)
+                || Strings.CS.equals(operator, CluePoolAssignConstants.OPERATOR_BETWEEN);
     }
 
     private GenericException invalidRule(String field) {
@@ -265,6 +289,12 @@ public class CluePoolAssignRuleService {
                 .filter(v -> v.getFieldId() != null)
                 .collect(Collectors.toMap(BaseModuleFieldValue::getFieldId, BaseModuleFieldValue::getFieldValue, (a, b) -> a));
 
+        // 系统创建时间注入,供时间条件(CLUE_CREATE_TIME)使用
+        Clue clue = clueMapper.selectByPrimaryKey(clueId);
+        if (clue != null && clue.getCreateTime() != null) {
+            fieldValueMap.put(CluePoolAssignConstants.TIME_FIELD_CLUE_CREATE_TIME, clue.getCreateTime());
+        }
+
         for (CluePoolAssignRule rule : rules) {
             if (matchRule(rule, fieldValueMap)) {
                 String targetUserId = resolveTargetUser(rule, operatorId, currentOrgId);
@@ -352,8 +382,15 @@ public class CluePoolAssignRuleService {
      */
     private boolean matchCondition(AssignRuleConditionDTO condition, Map<String, Object> fieldValueMap) {
         if (condition == null || StringUtils.isBlank(condition.getFieldId())
-                || StringUtils.isBlank(condition.getOperator()) || StringUtils.isBlank(condition.getValue())
-                || !isSupportedOperator(condition.getOperator())) {
+                || StringUtils.isBlank(condition.getOperator())) {
+            return false;
+        }
+        // 时间判断优先于内容字段判断
+        if (Strings.CS.equals(condition.getConditionType(), CluePoolAssignConstants.CONDITION_TYPE_TIME)) {
+            return matchTimeCondition(condition, fieldValueMap);
+        }
+        // 内容字段判断(默认)
+        if (StringUtils.isBlank(condition.getValue()) || !isSupportedOperator(condition.getOperator())) {
             return false;
         }
         Object actualValue = fieldValueMap.get(condition.getFieldId());
@@ -384,6 +421,55 @@ public class CluePoolAssignRuleService {
     }
 
     /**
+     * 时间条件匹配:基于线索任意日期/时间字段或系统创建时间(CLUE_CREATE_TIME)
+     * <p>
+     * 值统一为毫秒时间戳。BEFORE=早于; AFTER=晚于; BETWEEN=介于[value, value2]。
+     */
+    private boolean matchTimeCondition(AssignRuleConditionDTO condition, Map<String, Object> fieldValueMap) {
+        if (!isSupportedTimeOperator(condition.getOperator()) || StringUtils.isBlank(condition.getValue())) {
+            return false;
+        }
+        Long actual = parseTimeMillis(fieldValueMap.get(condition.getFieldId()));
+        if (actual == null) {
+            return false;
+        }
+        Long expected = parseTimeMillis(condition.getValue());
+        if (expected == null) {
+            return false;
+        }
+        return switch (condition.getOperator()) {
+            case CluePoolAssignConstants.OPERATOR_BEFORE -> actual < expected;
+            case CluePoolAssignConstants.OPERATOR_AFTER -> actual > expected;
+            case CluePoolAssignConstants.OPERATOR_BETWEEN -> {
+                Long end = parseTimeMillis(condition.getValue2());
+                yield end != null && actual >= expected && actual <= end;
+            }
+            default -> false;
+        };
+    }
+
+    private Long parseTimeMillis(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number num) {
+            return num.longValue();
+        }
+        if (value instanceof java.util.Date date) {
+            return date.getTime();
+        }
+        String str = String.valueOf(value).trim();
+        if (StringUtils.isBlank(str)) {
+            return null;
+        }
+        try {
+            return Long.parseLong(str);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
      * 根据分配方式解析目标用户
      *
      * @param rule          分配规则
@@ -393,14 +479,20 @@ public class CluePoolAssignRuleService {
      */
     private String resolveTargetUser(CluePoolAssignRule rule, String operatorId, String currentOrgId) {
         List<String> userIds;
-        try {
-            userIds = JSON.parseArray(rule.getTargetUserIds(), String.class).stream()
-                    .filter(StringUtils::isNotBlank)
-                    .distinct()
-                    .toList();
-        } catch (Exception e) {
-            log.warn("线索池分配规则目标人员格式错误, ruleId={}", rule.getId());
-            return null;
+        boolean deptTarget = Strings.CS.equals(rule.getAssignTargetType(), CluePoolAssignConstants.ASSIGN_TARGET_TYPE_DEPT);
+        if (deptTarget) {
+            // 按部门/区域动态解析成员(支持含子部门),人员变动无需改规则
+            userIds = resolveDeptMembers(rule, currentOrgId);
+        } else {
+            try {
+                userIds = JSON.parseArray(rule.getTargetUserIds(), String.class).stream()
+                        .filter(StringUtils::isNotBlank)
+                        .distinct()
+                        .toList();
+            } catch (Exception e) {
+                log.warn("线索池分配规则目标人员格式错误, ruleId={}", rule.getId());
+                return null;
+            }
         }
         if (CollectionUtils.isEmpty(userIds)) {
             return null;
@@ -436,6 +528,41 @@ public class CluePoolAssignRuleService {
         }
         log.warn("线索池循环分配指针更新冲突, ruleId={}", rule.getId());
         return null;
+    }
+
+    /**
+     * 按部门/区域动态解析目标成员
+     * <p>
+     * 根据 {@code targetDeptIds} 调用部门 Mapper 解析成员;当 {@code includeChildDept=true} 时递归包含子部门。
+     *
+     * @param rule         分配规则
+     * @param currentOrgId 当前组织ID
+     * @return 成员用户ID集合(已去重),为空表示无法解析
+     */
+    private List<String> resolveDeptMembers(CluePoolAssignRule rule, String currentOrgId) {
+        List<String> deptIds;
+        try {
+            deptIds = JSON.parseArray(rule.getTargetDeptIds(), String.class);
+        } catch (Exception e) {
+            log.warn("线索池分配规则目标部门格式错误, ruleId={}", rule.getId());
+            return new ArrayList<>();
+        }
+        if (CollectionUtils.isEmpty(deptIds)) {
+            return new ArrayList<>();
+        }
+        List<String> allDeptIds = deptIds;
+        if (Boolean.TRUE.equals(rule.getIncludeChildDept())) {
+            // selectChildrenByIds 递归含孙级,且结果已包含传入部门自身
+            List<String> withChildren = extDepartmentMapper.selectChildrenByIds(deptIds);
+            if (CollectionUtils.isNotEmpty(withChildren)) {
+                allDeptIds = withChildren;
+            }
+        }
+        List<String> memberIds = extDepartmentMapper.getUserIdsByDeptIds(allDeptIds);
+        if (CollectionUtils.isEmpty(memberIds)) {
+            return new ArrayList<>();
+        }
+        return memberIds.stream().filter(StringUtils::isNotBlank).distinct().toList();
     }
 
     /**

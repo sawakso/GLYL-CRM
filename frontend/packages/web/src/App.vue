@@ -64,6 +64,7 @@
         const res = await getThirdOauthCallback(code, type, state);
         const boolean = userStore.qrCodeLogin(res.data.data);
         if (boolean) {
+          await appStore.initModuleConfig();
           setLoginExpires();
           setLoginType(loginType);
 

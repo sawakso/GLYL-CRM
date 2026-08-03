@@ -193,6 +193,43 @@
             <div class="flex flex-nowrap"> {{ t('module.clue.receiveDay') }}</div>
           </n-form-item>
 
+          <!-- 定时自动分配(仅线索池) -->
+          <template v-if="isCluePool">
+            <div class="crm-module-form-title">{{ t('module.clue.autoAssign') }}</div>
+            <n-form-item path="autoAssignEnabled" :label="t('module.clue.autoAssignEnable')">
+              <div class="flex items-center gap-[12px]">
+                <n-switch v-model:value="form.autoAssignEnabled" />
+                <span class="text-[12px] text-[var(--text-n5)]">{{ t('module.clue.autoAssignEnableTip') }}</span>
+              </div>
+            </n-form-item>
+            <n-form-item
+              v-if="form.autoAssignEnabled"
+              path="autoAssignCron"
+              :label="t('module.clue.autoAssignCron')"
+            >
+              <div class="flex w-full flex-col gap-[8px]">
+                <n-input
+                  v-model:value="form.autoAssignCron"
+                  :placeholder="t('module.clue.autoAssignCronPlaceholder')"
+                  class="w-[320px]"
+                  size="small"
+                />
+                <n-space :size="[8, 8]">
+                  <n-tag
+                    v-for="item in cronQuickOptions"
+                    :key="item.value"
+                    :bordered="true"
+                    class="cursor-pointer"
+                    size="small"
+                    @click="form.autoAssignCron = item.value"
+                  >
+                    {{ item.label }}
+                  </n-tag>
+                </n-space>
+              </div>
+            </n-form-item>
+          </template>
+
           <!-- 线索池分配规则(仅线索池) -->
           <template v-if="isCluePool">
             <div class="crm-module-form-title">{{ t('module.clue.assignRule') }}</div>
@@ -466,14 +503,33 @@
     ],
     adminIds: [{ required: true, message: t('common.pleaseSelect') }],
     userIds: [{ required: true, message: t('common.pleaseSelect') }],
+    // 仅在对应开关开启时才必填,否则编辑已关闭开关的池会被校验拦截导致无法保存
     [`pickRule.pickIntervalDays`]: [
-      { required: true, type: 'number', message: t('common.pleaseInput'), trigger: ['input', 'blur'] },
+      {
+        validator: (_rule, value) =>
+          !form.value.pickRule.limitPreOwner || (typeof value === 'number' && !Number.isNaN(value))
+            ? Promise.resolve()
+            : Promise.reject(t('common.pleaseInput')),
+        trigger: ['input', 'blur'],
+      },
     ],
     [`pickRule.pickNumber`]: [
-      { required: true, type: 'number', message: t('common.pleaseInput'), trigger: ['input', 'blur'] },
+      {
+        validator: (_rule, value) =>
+          !form.value.pickRule.limitOnNumber || (typeof value === 'number' && !Number.isNaN(value))
+            ? Promise.resolve()
+            : Promise.reject(t('common.pleaseInput')),
+        trigger: ['input', 'blur'],
+      },
     ],
     [`pickRule.newPickInterval`]: [
-      { required: true, type: 'number', message: t('common.pleaseInput'), trigger: ['input', 'blur'] },
+      {
+        validator: (_rule, value) =>
+          !form.value.pickRule.limitNew || (typeof value === 'number' && !Number.isNaN(value))
+            ? Promise.resolve()
+            : Promise.reject(t('common.pleaseInput')),
+        trigger: ['input', 'blur'],
+      },
     ],
   };
 
@@ -517,6 +573,8 @@
     },
     assignRules: [],
     hiddenFieldIds: [],
+    autoAssignEnabled: false,
+    autoAssignCron: '',
   };
   const showFieldIds = ref<string[]>([]);
   const form = ref<CluePoolForm>(cloneDeep(initForm));
@@ -560,6 +618,15 @@
     ],
   };
   const recycleFormItemModel = ref<FilterForm>(cloneDeep(defaultFormModel));
+
+  const cronQuickOptions = [
+    { label: t('module.clue.cronEvery30Min'), value: '0 0/30 * * * ?' },
+    { label: t('module.clue.cronEveryHour'), value: '0 0 * * * ?' },
+    { label: t('module.clue.cronDaily9'), value: '0 0 9 * * ?' },
+    { label: t('module.clue.cronDaily12'), value: '0 0 12 * * ?' },
+    { label: t('module.clue.cronDaily20'), value: '0 0 20 * * ?' },
+    { label: t('module.clue.cronEvery5Min'), value: '0 0/5 * * * ?' },
+  ];
 
   const title = computed(() => {
     if (props.type === ModuleConfigEnum.CLUE_MANAGEMENT) {
@@ -656,29 +723,48 @@
       } else {
         cancelHandler();
       }
-    } catch (e) {
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || t('common.saveFailed');
+      Message.error(msg);
       // eslint-disable-next-line no-console
-      console.log(e);
+      console.error(e);
     } finally {
       loading.value = false;
     }
   }
 
   const filterContentRef = ref<InstanceType<typeof FilterContent>>();
-  function confirmHandler(isContinue: boolean) {
-    formRef.value?.validate(async (error) => {
-      if (!error) {
-        if (filterContentRef.value) {
-          filterContentRef.value?.formRef?.validate((errors) => {
-            if (!errors) {
-              handleSave(isContinue);
-            }
-          });
-        } else {
-          handleSave(isContinue);
+  async function confirmHandler(isContinue: boolean) {
+    try {
+      // 1. 验证主表单 (baseInfo tab 的 n-form)
+      if (formRef.value) {
+        const errors = await formRef.value.validate();
+        if (errors && Object.keys(errors).length > 0) {
+          Message.error(t('module.clue.formValidateError'));
+          return;
         }
       }
-    });
+      // 2. 验证回收规则 FilterContent (仅在自动回收开启时)
+      if (filterContentRef.value?.formRef) {
+        try {
+          await new Promise<void>((resolve, reject) => {
+            filterContentRef.value!.formRef!.validate((errs: any) => {
+              if (errs) reject(new Error('filter validate failed'));
+              else resolve();
+            });
+          });
+        } catch {
+          Message.error(t('module.clue.formValidateError'));
+          return;
+        }
+      }
+      // 3. 所有验证通过，执行保存
+      await handleSave(isContinue);
+    } catch (e: any) {
+      console.error('[PoolDrawer] confirmHandler error:', e);
+      const msg = e?.message || t('common.saveFailed');
+      Message.error(msg);
+    }
   }
 
   watch([() => props.row, () => visible.value], () => {
@@ -711,6 +797,8 @@
         pickRule: val.pickRule ?? cloneDeep(initForm).pickRule,
         recycleRule: val.recycleRule ?? cloneDeep(initForm).recycleRule,
         assignRules: val.assignRules ?? [],
+        autoAssignEnabled: val.autoAssignEnabled ?? false,
+        autoAssignCron: val.autoAssignCron ?? '',
         userIds: val.members,
         adminIds: val.owners,
         collaboratorIds: val.collaborators ?? [],

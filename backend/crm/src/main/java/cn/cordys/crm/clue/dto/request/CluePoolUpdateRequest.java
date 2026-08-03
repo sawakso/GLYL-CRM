@@ -102,6 +102,12 @@ public class CluePoolUpdateRequest {
     @Schema(description = "可查看线索池日志")
     private Boolean allowViewPoolLog;
 
+    @Schema(description = "启用定时自动分配")
+    private Boolean autoAssignEnabled;
+
+    @Schema(description = "定时自动分配cron表达式")
+    private String autoAssignCron;
+
     @Schema(description = "领取规则")
     private CluePoolPickRuleDTO pickRule;
 
