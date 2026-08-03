@@ -538,7 +538,9 @@
   });
 
   const listApi = computed(() => {
-    return isCustomForm.value ? getFieldCustomFormList : sourceApi[props.sourceType as FieldDataSourceTypeEnum];
+    const api = isCustomForm.value ? getFieldCustomFormList : sourceApi[props.sourceType as FieldDataSourceTypeEnum];
+    console.log('[dataSourceTable] listApi computed:', props.sourceType, 'api:', typeof api, 'isCustomForm:', isCustomForm.value);
+    return api;
   });
 
   const { propsRes, propsEvent, loadList, setAdvanceFilter, setLoadListParams } = useTable(
@@ -609,9 +611,13 @@
   const isFullScreen = computed(() => crmTableRef.value?.isFullScreen);
 
   onBeforeMount(async () => {
+    console.log('[dataSourceTable] onBeforeMount START, sourceType:', props.sourceType);
     await initFormConfig();
+    console.log('[dataSourceTable] initFormConfig DONE, fieldList length:', fieldList.value.length);
     emit('initForm', fieldList.value);
+    console.log('[dataSourceTable] calling searchData, listApi:', typeof listApi.value);
     searchData();
+    console.log('[dataSourceTable] searchData called');
   });
 
   watch(

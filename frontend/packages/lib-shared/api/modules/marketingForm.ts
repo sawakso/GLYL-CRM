@@ -45,6 +45,7 @@ export interface MarketingFormPublicConfig {
   description?: string;
   fields?: any[];
   formProp?: any;
+  organizationId?: string;
 }
 
 export default function useMarketingFormApi(CDR: CordysAxios) {

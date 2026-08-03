@@ -79,6 +79,8 @@ public final class ShiroFilter {
         FILTER_CHAIN_DEFINITION_MAP.put("/sso/callback/**", "anon");
         // 市场表单公开提交端点 (意向客户扫码填写, 免登录)
         FILTER_CHAIN_DEFINITION_MAP.put("/pub/**", "anon");
+        // 市场表单公开页面的数据源字段查询 (产品/客户/合同等下拉选项, 只读)
+        FILTER_CHAIN_DEFINITION_MAP.put("/field/source/**", "anon");
     }
 
     /**

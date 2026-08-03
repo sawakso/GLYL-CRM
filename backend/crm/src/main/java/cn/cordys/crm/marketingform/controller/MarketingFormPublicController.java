@@ -44,6 +44,7 @@ public class MarketingFormPublicController {
         MarketingFormPublicResponse resp = new MarketingFormPublicResponse();
         resp.setName(form.getName());
         resp.setDescription(form.getDescription());
+        resp.setOrganizationId(form.getOrganizationId());
 
         // 设置 org 上下文以读取字段定义 (ModuleFormService.getBusinessFormConfig 需要 orgId)
         OrganizationContext.setOrganizationId(form.getOrganizationId());

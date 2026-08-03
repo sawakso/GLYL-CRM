@@ -1,18 +1,22 @@
 <template>
-  <n-select
-    v-model:value="value"
-    filterable
-    multiple
-    tag
-    :placeholder="props.placeholder || t('common.pleaseSelect')"
-    :render-tag="renderTag"
-    :show-arrow="false"
-    :show="false"
-    :disabled="props.disabled"
-    :max-tag-count="props.maxTagCount"
-    :status="props.status"
-    @click="showDataSourcesModal"
-  />
+  <div style="cursor:pointer">
+    <n-select
+      v-model:value="value"
+      filterable
+      multiple
+      tag
+      :placeholder="props.placeholder || t('common.pleaseSelect')"
+      :render-tag="renderTag"
+      :show-arrow="false"
+      :show="false"
+      :disabled="props.disabled"
+      :max-tag-count="props.maxTagCount"
+      :status="props.status"
+    />
+    <n-button size="tiny" type="primary" @click="showDataSourcesModal">
+      {{ value.length ? t('common.reselect') : t('common.pleaseSelect') }}
+    </n-button>
+  </div>
   <CrmModal
     v-model:show="dataSourcesModalVisible"
     :title="t('crmFormDesign.selectDataSource', { type: dataSourceTitle })"
@@ -38,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-  import { DataTableRowKey, NSelect, SelectOption } from 'naive-ui';
+  import { DataTableRowKey, NButton, NSelect, SelectOption } from 'naive-ui';
   import { cloneDeep } from 'lodash-es';
 
   import { FieldDataSourceTypeEnum } from '@lib/shared/enums/formDesignEnum';
@@ -202,9 +206,16 @@
   };
 
   function showDataSourcesModal() {
+    console.log('[CrmDataSource] showDataSourcesModal called, disabled:', props.disabled, 'sourceType:', props.dataSourceType);
     if (!props.disabled) {
       selectedKeys.value = value.value;
       dataSourcesModalVisible.value = true;
+      console.log('[CrmDataSource] modal visible set to TRUE');
+      nextTick(() => {
+        console.log('[CrmDataSource] nextTick after modal open, visible:', dataSourcesModalVisible.value);
+      });
+    } else {
+      console.log('[CrmDataSource] modal BLOCKED by disabled');
     }
   }
 
@@ -253,6 +264,10 @@
       initialRows.value = cloneDeep(rows.value);
     }
     rows.value = rows.value.filter((item) => value.value.includes(item.id as DataTableRowKey));
+  });
+
+  onMounted(() => {
+    console.log('[CrmDataSource] MOUNTED, sourceType:', props.dataSourceType, 'disabled:', props.disabled);
   });
 </script>
 

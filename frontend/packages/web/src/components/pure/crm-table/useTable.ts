@@ -154,7 +154,11 @@ export default function useTable<T>(
     refreshId: string | number | undefined = undefined,
     _tableKey?: TableKeyEnum | string
   ) {
-    if (!loadListFunc || propsRes.value.loading) return;
+    console.log('[useTable loadList] called, loadListFunc:', typeof loadListFunc, 'loading:', propsRes.value.loading);
+    if (!loadListFunc || propsRes.value.loading) {
+      console.log('[useTable loadList] EARLY RETURN: loadListFunc=', loadListFunc, 'loading=', propsRes.value.loading);
+      return;
+    }
     setLoading(true);
     await getPaginationType(_tableKey || (propsRes.value.tableKey as TableKeyEnum));
     try {

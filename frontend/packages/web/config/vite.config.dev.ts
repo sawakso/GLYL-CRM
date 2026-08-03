@@ -18,7 +18,7 @@ export default mergeConfig(
       host: true,
       port: 5174,
       strictPort: true,
-      allowedHosts,
+      allowedHosts: ['frp-bar.com', '.frp-bar.com', 'localhost', '127.0.0.1', 'all'], // 👈 直接写死
       open: true,
       fs: {
         strict: true,

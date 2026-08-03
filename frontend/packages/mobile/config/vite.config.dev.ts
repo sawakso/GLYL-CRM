@@ -11,6 +11,16 @@ export default mergeConfig(
     server: {
       port: 3000,
       open: true,
+      allowedHosts: [
+        // 👈 添加这一整段
+        'frp-gap.com',
+        '.frp-gap.com',
+        'frp-bar.com',
+        '.frp-bar.com',
+        'localhost',
+        '127.0.0.1',
+        'all', // 如果还不行，可以临时用这个允许所有
+      ],
       fs: {
         strict: true,
       },

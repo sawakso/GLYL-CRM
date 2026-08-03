@@ -25,4 +25,7 @@ public class MarketingFormPublicResponse {
 
     @Schema(description = "表单属性")
     private FormProp formProp;
+
+    @Schema(description = "组织ID (供公开页面后续数据源查询使用)")
+    private String organizationId;
 }
