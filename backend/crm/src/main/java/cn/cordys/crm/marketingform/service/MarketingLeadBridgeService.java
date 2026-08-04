@@ -20,7 +20,9 @@ import cn.cordys.crm.clue.service.CluePoolAssignRuleService;
 import cn.cordys.crm.marketingform.domain.MarketingForm;
 import cn.cordys.crm.marketingform.domain.MarketingFormSubmission;
 import cn.cordys.crm.marketingform.dto.request.MarketingFormSubmitRequest;
+import cn.cordys.crm.system.domain.ModuleFieldBlob;
 import cn.cordys.crm.system.dto.field.base.BaseField;
+import cn.cordys.crm.system.dto.field.base.OptionProp;
 import cn.cordys.crm.system.service.LogService;
 import cn.cordys.crm.system.service.ModuleFormService;
 import cn.cordys.mybatis.BaseMapper;
@@ -35,6 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -79,6 +82,8 @@ public class MarketingLeadBridgeService {
     private LogService logService;
     @Resource
     private ModuleFormService moduleFormService;
+    @Resource
+    private BaseMapper<ModuleFieldBlob> moduleFieldBlobMapper;
 
     /**
      * 处理公开提交: 表单值 → 去重网关 → 创建/更新线索进池 → (可选)触发自动分配。
@@ -106,6 +111,9 @@ public class MarketingLeadBridgeService {
         try {
             // 3. 校验目标线索池
             CluePool pool = validateTargetPool(form.getTargetPoolId(), orgId);
+
+            // 3.1 确保来源字段选项包含当前表单名 (线索来源自动关联到表单名, 无需用户填写)
+            ensureSourceOption(form, orgId);
 
             // 4. 解析字段映射 + 提取表单值
             Map<String, String> fieldMapping = parseFieldMapping(form.getFieldMapping());
@@ -508,11 +516,15 @@ public class MarketingLeadBridgeService {
         clue.setCollectionTime(System.currentTimeMillis());
         clue.setCreateUser(operatorId);
         clue.setUpdateUser(operatorId);
-        // 关联来源市场活动 (我已加的字段)
+        // 关联来源市场活动
         clue.setMarketingEventId(form.getId());
-        // 注意: 不再硬编码 source=MARKETING_FORM —— 「来源」是单选字段,
-        // 硬编码值不在选项内会导致详情页显示"选项不存在"。来源追踪由 marketing_event_id + submission 留痕承担;
-        // 若需在来源字段体现, 请在表单设计器映射"来源"字段并选择合法选项。
+        // 来源: 自动关联到市场表单的名字, 无需用户填写 (ensureSourceOption 已把表单名加入来源选项, 保证正常显示)
+        clue.setSource(form.getName());
+        // ============ 市场表单回流默认值 (即使表单未映射也自动填入) ============
+        clue.setLeadsStage("新线索");           // 线索进度 (列表显示)
+        clue.setBizStatus("新建");              // 线索状态
+        clue.setLifeStatus("活跃");             // 生命状态
+        clue.setPoolEntryTime(System.currentTimeMillis()); // 领取/分配时间
 
         applyFormToClue(clue, form, fieldMapping, formValues);
 
@@ -646,6 +658,49 @@ public class MarketingLeadBridgeService {
         wrapper.eq(Clue::getDedupFingerprint, fingerprint);
         List<Clue> list = clueMapper.selectListByLambda(wrapper);
         return list.isEmpty() ? null : list.get(0).getId();
+    }
+
+    /**
+     * 确保线索「来源」字段的选项包含当前市场表单名。
+     * 使线索来源能自动关联到表单名 (source=form.name), 前端列表/详情能正常显示 label。
+     * 幂等: 选项已包含则跳过; 表单名变更/新表单会自动追加。
+     */
+    @SuppressWarnings("unchecked")
+    private void ensureSourceOption(MarketingForm form, String orgId) {
+        if (form == null || StringUtils.isBlank(form.getName())) {
+            return;
+        }
+        String sourceValue = form.getName();
+        try {
+            List<BaseField> fields = moduleFormService.getAllFields(FormKey.CLUE.getKey(), orgId);
+            BaseField sourceField = fields.stream()
+                    .filter(f -> "source".equals(f.getInternalKey()))
+                    .findFirst().orElse(null);
+            if (sourceField == null) {
+                return;
+            }
+            ModuleFieldBlob blob = moduleFieldBlobMapper.selectByPrimaryKey(sourceField.getId());
+            if (blob == null) {
+                return;
+            }
+            Map<String, Object> prop = JSON.parseObject(blob.getProp(), Map.class);
+            List<OptionProp> options = new ArrayList<>();
+            Object rawOptions = prop.get("options");
+            if (rawOptions instanceof List<?> list) {
+                options = new ArrayList<>(JSON.parseArray(JSON.toJSONString(list), OptionProp.class));
+            }
+            boolean exists = options.stream().anyMatch(o -> sourceValue.equals(String.valueOf(o.getValue())));
+            if (exists) {
+                return;
+            }
+            options.add(new OptionProp(sourceValue, sourceValue));
+            prop.put("options", options);
+            blob.setProp(JSON.toJSONString(prop));
+            moduleFieldBlobMapper.updateById(blob);
+            log.info("市场表单 {} 已把来源选项 {} 加入线索来源字段", form.getId(), sourceValue);
+        } catch (Exception e) {
+            log.warn("同步来源选项失败, 来源可能显示为选项不存在: {}", e.getMessage());
+        }
     }
 
     private String getClientIp(HttpServletRequest request) {

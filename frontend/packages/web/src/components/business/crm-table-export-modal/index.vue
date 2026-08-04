@@ -144,6 +144,8 @@
   } from 'naive-ui';
   import dayjs from 'dayjs';
   import { VueDraggable } from 'vue-draggable-plus';
+  import { h } from 'vue';
+  import { useRouter } from 'vue-router';
 
   import { ColumnTypeEnum } from '@lib/shared/enums/commonEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
@@ -218,6 +220,7 @@
 
   const { t } = useI18n();
   const message = useMessage();
+  const router = useRouter();
 
   const show = defineModel<boolean>('show', {
     required: true,
@@ -405,6 +408,7 @@
           form.value.fileName = '';
           show.value = false;
           message.success(t('common.exportTaskCreate'));
+          message.info(t('common.exportTaskTip'), { duration: 6000 });
           emit('createSuccess');
         } catch (e) {
           // eslint-disable-next-line no-console
