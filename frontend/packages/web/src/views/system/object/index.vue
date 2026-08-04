@@ -36,6 +36,7 @@
       </n-form-item>
     </n-form>
   </n-modal>
+  <FieldManageDrawer v-model:visible="fieldVisible" :form-key="currentFieldKey" :object-name="currentFieldName" />
 </template>
 
 <script setup lang="ts">
@@ -45,6 +46,7 @@
   import { useI18n } from '@lib/shared/hooks/useI18n';
 
   import CrmCard from '@/components/pure/crm-card/index.vue';
+  import FieldManageDrawer from './components/fieldManageDrawer.vue';
 
   import { getObjectConfigList, renameObjectConfig, switchObjectConfig } from '@/api/modules';
   import { hasAnyPermission } from '@/utils/permission';
@@ -125,6 +127,15 @@
     }
   }
 
+  const fieldVisible = ref(false);
+  const currentFieldKey = ref('');
+  const currentFieldName = ref('');
+  function handleFieldManage(item: ObjectConfigItem) {
+    currentFieldKey.value = item.key;
+    currentFieldName.value = item.name;
+    fieldVisible.value = true;
+  }
+
   // 表格列定义
   const columns: DataTableColumns<ObjectConfigItem> = [
     {
@@ -182,14 +193,10 @@
       width: 120,
       render(row) {
         if (!hasAnyPermission(['MODULE_SETTING:UPDATE'])) return null;
-        return h(
-          'a',
-          {
-            class: 'text-[var(--primary-8)] cursor-pointer',
-            onClick: () => handleRename(row),
-          },
-          t('objectSetting.rename')
-        );
+        return h('div', { class: 'flex gap-[8px]' }, [
+          h('a', { class: 'text-[var(--primary-8)] cursor-pointer', onClick: () => handleRename(row) }, t('objectSetting.rename')),
+          h('a', { class: 'text-[var(--primary-8)] cursor-pointer', onClick: () => handleFieldManage(row) }, t('objectSetting.fieldManage')),
+        ]);
       },
     },
   ];

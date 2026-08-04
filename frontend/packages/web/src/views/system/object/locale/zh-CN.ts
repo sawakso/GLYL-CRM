@@ -11,5 +11,10 @@ export default {
   'objectSetting.rename': '重命名',
   'objectSetting.renamed': '已改名',
   'objectSetting.renamePlaceholder': '输入自定义名称，留空恢复默认',
+  'objectSetting.fieldManage': '字段管理',
+  'objectSetting.addField': '新增字段',
+  'objectSetting.fieldName': '字段名称',
+  'objectSetting.fieldType': '字段类型',
+  'objectSetting.internalKey': '内部Key',
   'menu.settings.objectSetting': '对象管理',
 };

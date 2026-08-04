@@ -11,5 +11,10 @@ export default {
   'objectSetting.rename': 'Rename',
   'objectSetting.renamed': 'Renamed',
   'objectSetting.renamePlaceholder': 'Enter custom name, leave empty to restore default',
+  'objectSetting.fieldManage': 'Field Management',
+  'objectSetting.addField': 'Add Field',
+  'objectSetting.fieldName': 'Field Name',
+  'objectSetting.fieldType': 'Field Type',
+  'objectSetting.internalKey': 'Internal Key',
   'menu.settings.objectSetting': 'Object Management',
 };

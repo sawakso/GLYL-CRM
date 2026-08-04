@@ -754,6 +754,10 @@ export const {
   getDatasourceRefDetailList,
   getFieldCustomFormList,
   getDatasourceFieldConfig,
+  getFieldList,
+  toggleField,
+  addField,
+  deleteField,
 } = moduleApi;
 
 export const {

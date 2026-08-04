@@ -357,3 +357,14 @@ export interface RefDataSourceFieldItem {
   optionMap?: Record<string, any[]>;
   [key: string]: any;
 }
+
+export interface FieldInfo {
+  id: string;
+  name: string;
+  type: string;
+  internalKey: string;
+  readable: boolean;
+  editable: boolean;
+  pos: number;
+  businessKey: string;
+}

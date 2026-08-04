@@ -97,6 +97,7 @@ import type {
   CluePoolItem,
   CluePoolParams,
   DefaultSearchSetFormModel,
+  FieldInfo,
   FormDesignConfigDetailParams,
   FormDesignDataSourceTableQueryParams,
   GetRefDataSourceFieldParams,
@@ -436,6 +437,22 @@ export default function useProductApi(CDR: CordysAxios) {
     return CDR.get<FormDesignConfigDetailParams | CustomFormDetail>({ url: `${GetFieldConfigUrl}/${type}` });
   }
 
+  function getFieldList(formKey: string) {
+    return CDR.get<FieldInfo[]>({ url: `/field-config/${formKey}/list` });
+  }
+
+  function toggleField(formKey: string, fieldId: string) {
+    return CDR.post<string>({ url: `/field-config/${formKey}/toggle/${fieldId}` });
+  }
+
+  function addField(formKey: string, data: { name: string; type: string; internalKey?: string }) {
+    return CDR.post<{ id: string }>({ url: `/field-config/${formKey}/add`, data });
+  }
+
+  function deleteField(formKey: string, fieldId: string) {
+    return CDR.post<string>({ url: `/field-config/${formKey}/${fieldId}` });
+  }
+
   return {
     getFieldDisplayList,
     getModuleNavConfigList,
@@ -509,5 +526,9 @@ export default function useProductApi(CDR: CordysAxios) {
     getDatasourceRefDetailList,
     getFieldCustomFormList,
     getDatasourceFieldConfig,
+    getFieldList,
+    toggleField,
+    addField,
+    deleteField,
   };
 }
