@@ -18,6 +18,7 @@
         }"
         class="crm-form-design--composition-drag-wrapper"
         @start="onStart"
+        @add="onFieldAdded"
       >
         <template v-for="item in list" :key="item.id">
           <div
@@ -39,7 +40,7 @@
               class="crm-form-design--composition-item-tools"
             >
               <n-tooltip
-                v-if="![FieldTypeEnum.SERIAL_NUMBER].includes(item.type) && !item.resourceFieldId"
+                v-if="![FieldTypeEnum.SERIAL_NUMBER].includes(item.type) && !item.resourceFieldId && !item.isRefField"
                 :delay="300"
                 :show-arrow="false"
                 class="crm-form-design--composition-item-tools-tip"
@@ -56,7 +57,7 @@
               </n-tooltip>
 
               <n-tooltip
-                v-if="!item.businessKey || item.resourceFieldId"
+                v-if="!item.businessKey || item.resourceFieldId || item.isRefField"
                 :delay="300"
                 :show-arrow="false"
                 class="crm-form-design--composition-item-tools-tip"
@@ -111,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-  import { NForm, NScrollbar, NTooltip } from 'naive-ui';
+  import { NForm, NScrollbar, NTooltip, useMessage } from 'naive-ui';
   import { cloneDeep } from 'lodash-es';
   import { VueDraggable } from 'vue-draggable-plus';
 
@@ -133,6 +134,7 @@
   }>();
 
   const { t } = useI18n();
+  const message = useMessage();
 
   const list = defineModel<FormCreateField[]>('list', {
     required: true,
@@ -143,6 +145,18 @@
 
   function onStart(e: any) {
     activeItem.value = e.data as FormCreateField;
+  }
+
+  // 拖入后校验: 引用 CRM 业务字段(businessKey)不允许重复, 重复则移除并提示
+  function onFieldAdded(evt: any) {
+    const added = evt?.data as FormCreateField | undefined;
+    if (!added || !added.businessKey) {
+      return;
+    }
+    if (list.value.some((f) => f.id !== added.id && f.businessKey === added.businessKey)) {
+      list.value = list.value.filter((f) => f.id !== added.id);
+      message.warning(t('crmFormDesign.refFieldDuplicate'));
+    }
   }
 
   function handleItemClick(item: FormCreateField) {
@@ -220,6 +234,11 @@
   }
 
   function addItem(item: FormCreateField) {
+    // 引用 CRM 业务字段: 同一 businessKey 只允许添加一次, 避免字段映射歧义与重名
+    if (item.businessKey && list.value.some((e) => e.businessKey === item.businessKey && e.id !== item.id)) {
+      message.warning(t('crmFormDesign.refFieldDuplicate'));
+      return;
+    }
     const res: FormCreateField = {
       ...cloneDeep(item),
       id: getGenerateId(),

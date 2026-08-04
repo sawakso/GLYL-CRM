@@ -235,6 +235,10 @@ public class CluePoolService {
         pool.setCreateUser(currentUserId);
         pool.setUpdateTime(System.currentTimeMillis());
         pool.setUpdateUser(currentUserId);
+        // 去重默认值 (DB 列为 NOT NULL, 前端未传时兜底)
+        pool.setDedupStrategy(StringUtils.defaultIfBlank(pool.getDedupStrategy(), "UPDATE"));
+        pool.setDedupWindow(pool.getDedupWindow() == null ? 5 : pool.getDedupWindow());
+        pool.setDedupKey(StringUtils.defaultIfBlank(pool.getDedupKey(), "AUTO"));
 
         cluePoolMapper.insert(pool);
 

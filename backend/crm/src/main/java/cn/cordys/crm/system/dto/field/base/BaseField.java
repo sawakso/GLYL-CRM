@@ -104,6 +104,13 @@ public abstract class BaseField {
 	private String resourceFieldId;
 
 	/**
+	 * 市场表单引用 CRM 字段: 被引用的线索字段ID。
+	 * 引用字段在设计器落库时 id 会重新生成, 凭此属性把表单值映射回线索模块字段 (EAV 落库)。
+	 */
+	@Schema(description = "市场表单引用CRM字段: 被引用的模块字段ID")
+	private String refFieldId;
+
+	/**
 	 * 子表格字段特有属性
 	 */
 	@Schema(description = "该字段所属子表格ID, 仅子表格字段使用, 用来区分该字段是外层字段还是子表格字段")

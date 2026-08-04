@@ -23,6 +23,18 @@ public class MarketingFormSubmission extends BaseModel {
     @Schema(description = "提交者IP")
     private String submitIp;
 
+    @Schema(description = "提交者设备指纹")
+    private String submitDevice;
+
+    @Schema(description = "本次去重使用的身份键: PHONE/DEVICE/IP")
+    private String identityKey;
+
+    @Schema(description = "身份键取值")
+    private String identityValue;
+
+    @Schema(description = "去重处理结果: CREATE/UPDATE/SKIP/MARK")
+    private String dedupAction;
+
     @Schema(description = "组织ID")
     private String organizationId;
 }

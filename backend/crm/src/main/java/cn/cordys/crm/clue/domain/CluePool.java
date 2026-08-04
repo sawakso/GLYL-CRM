@@ -92,4 +92,13 @@ public class CluePool extends BaseModel {
 
     @Schema(description = "定时自动分配cron表达式")
     private String autoAssignCron;
+
+    @Schema(description = "去重策略(池默认): NONE/UPDATE/SKIP/MARK")
+    private String dedupStrategy;
+
+    @Schema(description = "去重时间窗(分钟), 0 表示不限时间窗")
+    private Integer dedupWindow;
+
+    @Schema(description = "身份判定键: AUTO/PHONE/DEVICE/IP")
+    private String dedupKey;
 }

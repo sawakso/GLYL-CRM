@@ -27,7 +27,15 @@
     </div>
 
     <!-- 表单填写 -->
-    <div v-else class="flex flex-1 flex-col">
+    <div v-else class="flex min-h-0 flex-1 flex-col">
+      <div
+        v-if="dedupTip"
+        class="mx-[12px] mt-[12px] flex shrink-0 items-start gap-[6px] rounded-[8px] bg-[var(--van-orange-light)] px-[10px] py-[8px] text-[12px] leading-[18px] text-[var(--van-orange-dark)]"
+      >
+        <van-icon name="info-o" class="!mt-[2px] shrink-0" />
+        <span>{{ dedupTip }}</span>
+      </div>
+
       <van-form ref="formRef" class="crm-form" required="auto">
         <van-cell-group inset>
           <template v-for="item in mobileFieldList" :key="item.id">
@@ -48,16 +56,19 @@
     </div>
 
     <template #footer>
-      <van-button
-        v-if="!loading && !loadFailed && !submitted"
-        type="primary"
-        class="!rounded-[var(--border-radius-small)] !text-[16px]"
-        :loading="submitting"
-        block
-        @click="handleSubmit"
-      >
-        {{ submitting ? t('pubForm.submitting') : t('pubForm.submit') }}
-      </van-button>
+      <div v-if="!loading && !loadFailed && !submitted" class="flex gap-[12px]">
+        <van-button plain class="!rounded-[var(--border-radius-small)] !text-[16px]" @click="handleReset">
+          {{ t('pubForm.reset') }}
+        </van-button>
+        <van-button
+          type="primary"
+          class="flex-1 !rounded-[var(--border-radius-small)] !text-[16px]"
+          :loading="submitting"
+          @click="handleSubmit"
+        >
+          {{ submitting ? t('pubForm.submitting') : t('pubForm.submit') }}
+        </van-button>
+      </div>
     </template>
   </CrmPageWrapper>
 </template>
@@ -69,7 +80,7 @@
 
   import { FieldTypeEnum, FormDesignKeyEnum } from '@lib/shared/enums/formDesignEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
-  import { setLocalStorage } from '@lib/shared/method/local-storage';
+  import { getLocalStorage, setLocalStorage } from '@lib/shared/method/local-storage';
 
   import CrmPageWrapper from '@/components/pure/crm-page-wrapper/index.vue';
   import CrmFormCreateComponents from '@/components/business/crm-form-create/components';
@@ -92,6 +103,19 @@
   const failMessage = ref('');
   const submitted = ref(false);
   const formTitle = ref(t('pubForm.title'));
+  const dedupTip = ref('');
+  const requireName = ref(false);
+
+  // 免登录场景的次选身份键: localStorage 持久化设备指纹 (同一浏览器/设备保持一致)
+  const DEVICE_ID_KEY = 'crm_pub_device_id';
+  function getOrCreateDeviceId(): string {
+    let deviceId = getLocalStorage(DEVICE_ID_KEY) || '';
+    if (!deviceId) {
+      deviceId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+      setLocalStorage(DEVICE_ID_KEY, deviceId);
+    }
+    return deviceId;
+  }
 
   const { fieldList, formDetail, originFormDetail, initFormConfig, initFormShowControl } = useFormCreateApi({
     formKey: FormDesignKeyEnum.MARKETING_FORM,
@@ -234,6 +258,16 @@
       // 手动校验必填项 (van-form validate)
       await formRef.value?.validate();
 
+      // 防呆: 表单开启"姓名必填"时, 校验映射到 name(businessKey='name') 的字段非空
+      if (requireName.value) {
+        const nameField = fieldList.value.find((item) => item.businessKey === 'name');
+        const nameValue = nameField ? formDetail.value[nameField.id] : '';
+        if (!nameValue || (typeof nameValue === 'string' && !nameValue.trim())) {
+          showFailToast(t('pubForm.nameRequired'));
+          return;
+        }
+      }
+
       submitting.value = true;
 
       // 构建 moduleFields (复用 saveForm 的字段收集逻辑)
@@ -255,7 +289,7 @@
         });
       });
 
-      await submitPublicMarketingForm(token, { moduleFields });
+      await submitPublicMarketingForm(token, { moduleFields, deviceId: getOrCreateDeviceId() });
       submitted.value = true;
       showSuccessToast(t('pubForm.submitSuccess'));
     } catch (error: any) {
@@ -270,11 +304,11 @@
 
   function handleFillAgain() {
     submitted.value = false;
-    // 重置表单
     formDetail.value = {};
-    Object.keys(formDetail.value).forEach((key) => {
-      formDetail.value[key] = '';
-    });
+  }
+
+  function handleReset() {
+    formDetail.value = {};
   }
 
   async function loadForm() {
@@ -288,6 +322,8 @@
         if (config?.organizationId) {
           setLocalStorage('app', { orgId: config.organizationId });
         }
+        dedupTip.value = config?.dedupTip || '';
+        requireName.value = !!config?.requireName;
       } catch {
         // 忽略 orgId 获取失败
       }

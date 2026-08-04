@@ -28,4 +28,10 @@ public class MarketingFormPublicResponse {
 
     @Schema(description = "组织ID (供公开页面后续数据源查询使用)")
     private String organizationId;
+
+    @Schema(description = "去重提示文案 (未启用去重时为 null)")
+    private String dedupTip;
+
+    @Schema(description = "是否强制姓名必填才能提交")
+    private Boolean requireName;
 }

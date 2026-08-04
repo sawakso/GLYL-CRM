@@ -101,13 +101,16 @@ public abstract class AbstractModuleFieldResolver<T extends BaseField> {
         }
     }
 
-    // 校验选项值是否合法,空值，"",不校验
+    // 校验选项值是否合法,空值,"",不校验
     protected void validateOptions(String name, Object value, List<OptionProp> options) {
         if (value == null || StringUtils.isBlank(value.toString())) {
             return;
         }
-        if (options == null) {
-            options = List.of();
+        if (options == null || options.isEmpty()) {
+            // 选项为空时无法校验, 直接放行:
+            // 1) 历史扩展字段(SELECT/RADIO)建库时 options 为空, 硬校验会误杀正常提交
+            // 2) 免登录市场表单回流等场景, 选项校验由表单设计器定义保证
+            return;
         }
         boolean match = options.stream()
                 .anyMatch(option -> option.getValue() != null && option.getValue().toString().equals(value.toString()));

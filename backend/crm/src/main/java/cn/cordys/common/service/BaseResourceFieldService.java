@@ -170,8 +170,34 @@ public abstract class BaseResourceFieldService<T extends BaseResourceField, V ex
      * @param moduleFieldValues 自定义字段值
      * @param update            是否更新
      */
+    /**
+     * 保存字段值 (默认执行唯一性校验)。
+     *
+     * @param resource          资源
+     * @param orgId             组织ID
+     * @param userId            用户ID
+     * @param moduleFieldValues 自定义字段值
+     * @param update            是否更新
+     */
     @SuppressWarnings({"rawtypes", "unchecked"})
     public <K> void saveModuleField(K resource, String orgId, String userId, List<BaseModuleFieldValue> moduleFieldValues, boolean update) {
+        saveModuleField(resource, orgId, userId, moduleFieldValues, update, false);
+    }
+
+    /**
+     * 保存字段值 (可跳过唯一性校验)。
+     * <p>skipUniqueCheck=true 适用于"免登录表单回流"等已由上层去重网关兜底的场景,
+     * 避免先插入资源后再做唯一自检时撞到刚插入的当前记录 (self-match) 导致回滚。
+     *
+     * @param resource          资源
+     * @param orgId             组织ID
+     * @param userId            用户ID
+     * @param moduleFieldValues 自定义字段值
+     * @param update            是否更新
+     * @param skipUniqueCheck   是否跳过唯一性校验 (业务字段重复自检 + 字段级唯一校验)
+     */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public <K> void saveModuleField(K resource, String orgId, String userId, List<BaseModuleFieldValue> moduleFieldValues, boolean update, boolean skipUniqueCheck) {
         List<BaseField> allFields = Objects.requireNonNull(CommonBeanFactory.getBean(ModuleFormService.class))
                 .getAllFields(getFormKey(), OrganizationContext.getOrganizationId());
         if (CollectionUtils.isEmpty(allFields)) {
@@ -188,7 +214,9 @@ public abstract class BaseResourceFieldService<T extends BaseResourceField, V ex
         }
 
         // 校验业务字段，字段值是否重复
-        businessFieldRepeatCheck(orgId, resource, update ? List.of(resourceId) : List.of(), allFields);
+        if (!skipUniqueCheck) {
+            businessFieldRepeatCheck(orgId, resource, update ? List.of(resourceId) : List.of(), allFields);
+        }
 
         // 处理字段值
         Map<String, String> serialNumCache = new HashMap<>(2);
@@ -216,7 +244,7 @@ public abstract class BaseResourceFieldService<T extends BaseResourceField, V ex
                         return;
                     }
 
-                    if (field.needRepeatCheck()) {
+                    if (!skipUniqueCheck && field.needRepeatCheck()) {
                         checkUnique(fieldValue, field);
                     }
 

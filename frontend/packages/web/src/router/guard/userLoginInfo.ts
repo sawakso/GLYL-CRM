@@ -1,6 +1,7 @@
 import { clearToken, hasToken, isLoginExpires } from '@lib/shared/method/auth';
 
 import useUser from '@/hooks/useUser';
+import useUserStore from '@/store/modules/user';
 import { getFirstRouteNameByPermission } from '@/utils/permission';
 
 import NProgress from 'nprogress';
@@ -37,6 +38,18 @@ export default function setupUserLoginInfoGuard(router: Router) {
       next({ name: firstRoute });
       NProgress.done();
       return;
+    }
+
+    // 已登录但用户信息(含 permissionIds) 尚未加载时, 先拉取再放行,
+    // 避免后续 permission 守卫拿到空的 permissionIds 误判无权限 (刷新场景必现)
+    const userStore = useUserStore();
+    if (tokenExists && userStore.userInfo.permissionIds.length === 0) {
+      try {
+        await userStore.isLogin(true);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.log('[userLoginInfoGuard] isLogin failed:', e);
+      }
     }
 
     // 其他情况（放行：已登录访问正常页面\未登录访问白名单页面）

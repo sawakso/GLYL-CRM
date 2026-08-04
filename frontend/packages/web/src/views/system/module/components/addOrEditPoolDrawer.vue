@@ -193,6 +193,42 @@
             <div class="flex flex-nowrap"> {{ t('module.clue.receiveDay') }}</div>
           </n-form-item>
 
+          <!-- 表单回流去重(仅线索池, 市场表单未单独配置时使用的默认策略) -->
+          <template v-if="isCluePool">
+            <div class="crm-module-form-title">{{ t('module.clue.formDedup') }}</div>
+            <div class="mb-[8px] text-[12px] text-[var(--text-n5)]">{{ t('module.clue.formDedupTip') }}</div>
+            <n-form-item path="dedupStrategy" :label="t('module.clue.dedupStrategy')">
+              <n-select
+                v-model:value="form.dedupStrategy"
+                :options="dedupStrategyOptions"
+                class="w-[360px]"
+                size="small"
+              />
+            </n-form-item>
+            <n-form-item path="dedupWindow" :label="t('module.clue.dedupWindow')">
+              <div class="flex items-center gap-[8px]">
+                <CrmInputNumber
+                  v-model:value="form.dedupWindow"
+                  class="w-[160px]"
+                  min="0"
+                  max="10080"
+                  :precision="0"
+                  :disabled="form.dedupStrategy === 'NONE'"
+                />
+                <span class="text-[12px] text-[var(--text-n5)]">{{ t('module.clue.dedupWindowTip') }}</span>
+              </div>
+            </n-form-item>
+            <n-form-item path="dedupKey" :label="t('module.clue.dedupKey')">
+              <n-select
+                v-model:value="form.dedupKey"
+                :options="dedupKeyOptions"
+                class="w-[360px]"
+                size="small"
+                :disabled="form.dedupStrategy === 'NONE'"
+              />
+            </n-form-item>
+          </template>
+
           <!-- 定时自动分配(仅线索池) -->
           <template v-if="isCluePool">
             <div class="crm-module-form-title">{{ t('module.clue.autoAssign') }}</div>
@@ -575,6 +611,9 @@
     hiddenFieldIds: [],
     autoAssignEnabled: false,
     autoAssignCron: '',
+    dedupStrategy: 'UPDATE',
+    dedupWindow: 5,
+    dedupKey: 'AUTO',
   };
   const showFieldIds = ref<string[]>([]);
   const form = ref<CluePoolForm>(cloneDeep(initForm));
@@ -626,6 +665,20 @@
     { label: t('module.clue.cronDaily12'), value: '0 0 12 * * ?' },
     { label: t('module.clue.cronDaily20'), value: '0 0 20 * * ?' },
     { label: t('module.clue.cronEvery5Min'), value: '0 0/5 * * * ?' },
+  ];
+
+  const dedupStrategyOptions = [
+    { label: t('module.clue.dedupStrategyNone'), value: 'NONE' },
+    { label: t('module.clue.dedupStrategyUpdate'), value: 'UPDATE' },
+    { label: t('module.clue.dedupStrategySkip'), value: 'SKIP' },
+    { label: t('module.clue.dedupStrategyMark'), value: 'MARK' },
+  ];
+
+  const dedupKeyOptions = [
+    { label: t('module.clue.dedupKeyAuto'), value: 'AUTO' },
+    { label: t('module.clue.dedupKeyPhone'), value: 'PHONE' },
+    { label: t('module.clue.dedupKeyDevice'), value: 'DEVICE' },
+    { label: t('module.clue.dedupKeyIp'), value: 'IP' },
   ];
 
   const title = computed(() => {
@@ -799,6 +852,9 @@
         assignRules: val.assignRules ?? [],
         autoAssignEnabled: val.autoAssignEnabled ?? false,
         autoAssignCron: val.autoAssignCron ?? '',
+        dedupStrategy: val.dedupStrategy ?? 'UPDATE',
+        dedupWindow: val.dedupWindow ?? 5,
+        dedupKey: val.dedupKey ?? 'AUTO',
         userIds: val.members,
         adminIds: val.owners,
         collaboratorIds: val.collaborators ?? [],

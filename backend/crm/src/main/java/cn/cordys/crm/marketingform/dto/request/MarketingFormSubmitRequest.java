@@ -16,4 +16,7 @@ public class MarketingFormSubmitRequest {
 
     @Schema(description = "表单字段值列表 (EAV)")
     private List<BaseModuleFieldValue> moduleFields;
+
+    @Schema(description = "设备指纹 (前端 localStorage 生成, 免登录场景下的次选身份键)")
+    private String deviceId;
 }

@@ -185,6 +185,12 @@ public class Clue extends BaseModel {
     @Schema(description = "是否存在重复数据")
     private Boolean isDuplicated;
 
+    @Schema(description = "疑似重复时关联的原线索ID")
+    private String duplicateClueId;
+
+    @Schema(description = "表单回流去重指纹 formId:key:value(并发安全去重兜底)")
+    private String dedupFingerprint;
+
     @Schema(description = "工商注册")
     private Boolean bizRegName;
 

@@ -165,6 +165,9 @@ export interface CluePoolParams {
   assignRules: CluePoolAssignRuleParams[]; // 分配规则集合
   autoAssignEnabled?: boolean; // 是否开启定时自动分配
   autoAssignCron?: string; // 定时自动分配 cron 表达式
+  dedupStrategy?: string; // 表单回流去重策略(池默认): NONE/UPDATE/SKIP/MARK
+  dedupWindow?: number; // 去重时间窗(分钟), 0 表示不限
+  dedupKey?: string; // 身份判定键: AUTO/PHONE/DEVICE/IP
   hiddenFieldIds: string[]; // 隐藏的表格字段
 }
 
@@ -218,6 +221,9 @@ export interface CluePoolItem {
   assignRules?: CluePoolAssignRuleParams[]; // 分配规则集合
   autoAssignEnabled?: boolean; // 是否开启定时自动分配
   autoAssignCron?: string; // 定时自动分配 cron 表达式
+  dedupStrategy?: string; // 表单回流去重策略(池默认)
+  dedupWindow?: number; // 去重时间窗(分钟)
+  dedupKey?: string; // 身份判定键
   currentClueCount?: number; // 当前线索数量
   fieldConfigs: {
     editable: boolean;

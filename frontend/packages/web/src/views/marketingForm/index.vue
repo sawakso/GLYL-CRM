@@ -25,6 +25,12 @@
     />
 
     <QrCodeModal v-model:visible="qrVisible" :form-item="currentQrItem" />
+
+    <PreviewModal
+      v-model:visible="previewVisible"
+      :form-id="currentPreviewId"
+      :form-name="currentPreviewName"
+    />
   </CrmCard>
 </template>
 
@@ -38,6 +44,7 @@
   import type { ActionsItem } from '@/components/pure/crm-more-action/type';
   import CrmOperationButton from '@/components/business/crm-operation-button/index.vue';
   import ConfigDrawer from './components/configDrawer/index.vue';
+  import PreviewModal from './components/previewModal/index.vue';
   import QrCodeModal from './components/qrCodeModal/index.vue';
 
   import { deleteMarketingForm, getMarketingFormList, updateMarketingFormStatus } from '@/api/modules';
@@ -103,6 +110,17 @@
     loadList();
   }
 
+  // Preview modal
+  const previewVisible = ref(false);
+  const currentPreviewId = ref<string | undefined>(undefined);
+  const currentPreviewName = ref('');
+
+  function handlePreview(row: MarketingFormListItem) {
+    currentPreviewId.value = row.id;
+    currentPreviewName.value = row.name || '';
+    previewVisible.value = true;
+  }
+
   // QR code modal
   const qrVisible = ref(false);
   const currentQrItem = ref<MarketingFormListItem | null>(null);
@@ -164,6 +182,7 @@
   // 根据表单状态生成操作菜单 (DRAFT/CLOSED → 可启用, ACTIVE → 可关闭)
   function buildGroupList(row: MarketingFormListItem): ActionsItem[] {
     const items: ActionsItem[] = [
+      { label: t('marketingForm.preview'), key: 'preview', permission: ['MARKETING_FORM:READ'] },
       { label: t('common.edit'), key: 'edit', permission: ['MARKETING_FORM:UPDATE'] },
       { label: t('marketingForm.settings'), key: 'settings', permission: ['MARKETING_FORM:UPDATE'] },
       { label: t('marketingForm.qrCode'), key: 'qr', permission: ['MARKETING_FORM:READ'] },
@@ -180,6 +199,9 @@
 
   function handleActionSelect(row: MarketingFormListItem, actionKey: string) {
     switch (actionKey) {
+      case 'preview':
+        handlePreview(row);
+        break;
       case 'edit':
         handleEdit(row);
         break;

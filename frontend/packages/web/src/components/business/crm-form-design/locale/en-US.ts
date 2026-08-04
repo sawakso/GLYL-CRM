@@ -1,6 +1,8 @@
 export default {
   'crmFormDesign.basicField': 'Basic Field',
   'crmFormDesign.advancedField': 'Advanced Field',
+  'crmFormDesign.refClueField': 'Reference Clue Field',
+  'crmFormDesign.refFieldDuplicate': 'This clue field has already been referenced and cannot be added again',
   'crmFormDesign.input': 'Single Line Text',
   'crmFormDesign.textarea': 'Multi Line Text',
   'crmFormDesign.inputNumber': 'Number',

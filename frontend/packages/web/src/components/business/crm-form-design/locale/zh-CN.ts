@@ -1,6 +1,8 @@
 export default {
   'crmFormDesign.basicField': '基础字段',
   'crmFormDesign.advancedField': '高级字段',
+  'crmFormDesign.refClueField': '引用线索字段',
+  'crmFormDesign.refFieldDuplicate': '该线索字段已被引用，不能重复添加',
   'crmFormDesign.input': '单行文本',
   'crmFormDesign.textarea': '多行文本',
   'crmFormDesign.inputNumber': '数字',

@@ -1,8 +1,5 @@
--- 补齐 marketing_form_submission 审计字段
--- 实体 MarketingFormSubmission 继承 BaseModel (含 createUser/updateUser/createTime/updateTime),
--- 初版建表遗漏了这四列, 导致列表查询 (按 formId 统计提交数) 报 Unknown column 'create_user'。
-ALTER TABLE marketing_form_submission
-    ADD COLUMN `create_time` BIGINT NULL COMMENT '创建时间' AFTER `organization_id`,
-    ADD COLUMN `update_time` BIGINT NULL COMMENT '更新时间' AFTER `create_time`,
-    ADD COLUMN `create_user` VARCHAR(32) NULL COMMENT '创建人' AFTER `update_time`,
-    ADD COLUMN `update_user` VARCHAR(32) NULL COMMENT '更新人' AFTER `create_user`;
+-- 补齐 marketing_form_submission 审计字段 (幂等, 无实际 DDL)
+-- 说明: 实体 MarketingFormSubmission 继承 BaseModel (含 createUser/updateUser/createTime/updateTime)。
+-- 这些列已由 V1.12.0_1__marketing_form.sql 建表时一并创建, 本脚本不再重复 ADD,
+-- 避免 Flyway 全量重跑时因重复列报 Error 1060 (Duplicate column name 'create_time')。
+-- 本文件保留以维持版本号连续性, 内容为空操作。

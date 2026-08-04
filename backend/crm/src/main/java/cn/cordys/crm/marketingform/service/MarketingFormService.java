@@ -75,7 +75,10 @@ public class MarketingFormService {
         form.setDescription(request.getDescription());
         form.setTargetPoolId(request.getTargetPoolId());
         form.setFieldMapping(request.getFieldMapping());
-        form.setDedupStrategy(StringUtils.defaultIfBlank(request.getDedupStrategy(), "NONE"));
+        form.setDedupStrategy(StringUtils.defaultIfBlank(request.getDedupStrategy(), "INHERIT"));
+        form.setDedupWindow(request.getDedupWindow());
+        form.setDedupKey(request.getDedupKey());
+        form.setRequireName(Boolean.TRUE.equals(request.getRequireName()));
         form.setQrToken(generateQrToken());
         form.setStatus("DRAFT");
         form.setOrganizationId(orgId);
@@ -183,7 +186,10 @@ public class MarketingFormService {
         updateForm.setDescription(request.getDescription());
         updateForm.setTargetPoolId(request.getTargetPoolId());
         updateForm.setFieldMapping(request.getFieldMapping());
-        updateForm.setDedupStrategy(StringUtils.defaultIfBlank(request.getDedupStrategy(), "NONE"));
+        updateForm.setDedupStrategy(StringUtils.defaultIfBlank(request.getDedupStrategy(), "INHERIT"));
+        updateForm.setDedupWindow(request.getDedupWindow());
+        updateForm.setDedupKey(request.getDedupKey());
+        updateForm.setRequireName(Boolean.TRUE.equals(request.getRequireName()));
         updateForm.setUpdateTime(System.currentTimeMillis());
         updateForm.setUpdateUser(userId);
         marketingFormMapper.update(updateForm);
@@ -257,6 +263,44 @@ public class MarketingFormService {
 
     private String generateQrToken() {
         return UUID.randomUUID().toString().replace("-", "");
+    }
+
+    /**
+     * 生成公开页去重提示文案 (表单可继承线索池默认)。
+     * 未启用去重 (NONE) 或配置缺失时返回 null。
+     */
+    public String buildDedupTip(MarketingForm form) {
+        if (form == null) {
+            return null;
+        }
+        String strategy = StringUtils.defaultIfBlank(form.getDedupStrategy(), "INHERIT");
+        Integer window = form.getDedupWindow();
+        String key = form.getDedupKey();
+        if ("INHERIT".equalsIgnoreCase(strategy)) {
+            CluePool pool = cluePoolMapper.selectByPrimaryKey(form.getTargetPoolId());
+            if (pool != null) {
+                strategy = StringUtils.defaultIfBlank(pool.getDedupStrategy(), "NONE");
+                if (window == null) {
+                    window = pool.getDedupWindow();
+                }
+                if (StringUtils.isBlank(key)) {
+                    key = pool.getDedupKey();
+                }
+            } else {
+                strategy = "NONE";
+            }
+        }
+        if ("NONE".equalsIgnoreCase(strategy)) {
+            return null;
+        }
+        int windowMinutes = window != null && window > 0 ? window : 5;
+        String windowDesc = window != null && window > 0 ? windowMinutes + " 分钟内" : "";
+        return switch (strategy.toUpperCase()) {
+            case "UPDATE" -> "同一位客户" + windowDesc + "再次提交，将自动更新之前填写的线索";
+            case "SKIP" -> "同一位客户" + windowDesc + "只能提交一次，重复提交将被忽略";
+            case "MARK" -> "同一位客户" + windowDesc + "重复提交，将标记为疑似重复线索";
+            default -> null;
+        };
     }
 
     private FormProp getFormPropForCreate(FormProp createFormProp) {

@@ -146,6 +146,7 @@ export interface FormCreateField {
   linkRange?: (string | number)[]; // 联动限制可选范围
   fieldValue?: any; // 字段值
   isNew?: boolean;
+  isRefField?: boolean; // 用户新增的"引用 CRM 业务字段"(市场表单设计器), 可删除/可编辑, 通过 businessKey 映射到线索列
   // 链接
   linkSource?: string;
   openMode?: string;

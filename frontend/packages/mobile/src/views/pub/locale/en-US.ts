@@ -5,6 +5,8 @@ export default {
   'pubForm.submitSuccess': 'Submitted successfully! We will contact you soon.',
   'pubForm.loadFailed': 'Failed to load form. Please check the QR code or contact support.',
   'pubForm.formClosed': 'This form is closed and cannot be submitted.',
+  'pubForm.nameRequired': 'Please fill in your name before submitting',
   'pubForm.back': 'Back',
   'pubForm.fillAgain': 'Submit Another',
+  'pubForm.reset': 'Reset',
 };
