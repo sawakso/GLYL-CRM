@@ -202,7 +202,7 @@ export default async function useFormCreateTable(props: FormCreateTableProps) {
             !(isFollowModule && ['clueId', 'customerId'].includes(e.businessKey as string))
         )
         .map((field) => {
-          let key = field.businessKey || field.id;
+          let key = field.businessKey || field.internalKey || field.id;
           if (field.resourceFieldId) {
             // 数据源引用字段用 id作为 key
             key = field.id;
@@ -259,6 +259,11 @@ export default async function useFormCreateTable(props: FormCreateTableProps) {
               field.type
             )
           ) {
+            // 构建选项列表用于值→标签转换
+            const selectOptions: { label: string; value: any }[] =
+              field.options?.map((e: any) => ({ label: e.label || e.name, value: e.value ?? e.id })) ||
+              field.initialOptions?.map((e: any) => ({ label: e.name, value: e.id })) ||
+              [];
             // 带筛选的列
             return {
               title: field.name,
@@ -271,13 +276,23 @@ export default async function useFormCreateTable(props: FormCreateTableProps) {
                   }
                 : undefined,
               isTag: field.type === FieldTypeEnum.CHECKBOX || field.type === FieldTypeEnum.SELECT_MULTIPLE,
-              filterOptions: field.options || field.initialOptions?.map((e: any) => ({ label: e.name, value: e.id })),
+              filterOptions: selectOptions,
               filter: !field.resourceFieldId,
               sortOrder: false,
               sorter: !noSorterType.includes(field.type) && !field.resourceFieldId,
               filterMultipleValue: multipleValueTypeList.includes(field.type),
               filedType: field.type,
               resourceFieldId: field.resourceFieldId,
+              // 自定义渲染：优先使用 transformData 已转换的值，否则用 filterOptions 回退转换
+              render: selectOptions.length
+                ? (row: Record<string, any>) => {
+                    const rawValue = row[key];
+                    if (rawValue === undefined || rawValue === null || rawValue === '') return '-';
+                    // 如果已经是转换后的标签（不在选项值列表中），直接显示
+                    const found = selectOptions.find((o) => String(o.value) === String(rawValue));
+                    return found?.label || rawValue;
+                  }
+                : undefined,
             };
           }
           if (

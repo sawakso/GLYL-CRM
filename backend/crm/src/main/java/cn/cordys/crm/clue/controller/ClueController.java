@@ -16,8 +16,10 @@ import cn.cordys.crm.clue.domain.Clue;
 import cn.cordys.crm.clue.dto.request.*;
 import cn.cordys.crm.clue.dto.response.ClueGetResponse;
 import cn.cordys.crm.clue.dto.response.ClueListResponse;
+import cn.cordys.crm.clue.dto.response.ClueStatusTransitionResponse;
 import cn.cordys.crm.clue.service.ClueExportService;
 import cn.cordys.crm.clue.service.ClueService;
+import cn.cordys.crm.clue.service.ClueStatusTransitionService;
 import cn.cordys.crm.customer.dto.request.BatchReTransitionCustomerRequest;
 import cn.cordys.crm.customer.dto.request.ClueTransformRequest;
 import cn.cordys.crm.customer.dto.request.CustomerPageRequest;
@@ -65,6 +67,8 @@ public class ClueController {
     private DataScopeService dataScopeService;
     @Resource
     private CustomerService customerService;
+    @Resource
+    private ClueStatusTransitionService clueStatusTransitionService;
 
     @GetMapping("/module/form")
     @RequiresPermissions(value = {PermissionConstants.CLUE_MANAGEMENT_READ, PermissionConstants.CLUE_MANAGEMENT_POOL_READ}, logical = Logical.OR)
@@ -109,6 +113,20 @@ public class ClueController {
     @Operation(summary = "更新线索状态")
     public void updateStatus(@Validated @RequestBody ClueStatusUpdateRequest request) {
         clueService.updateStatus(request, SessionUtils.getUserId(), OrganizationContext.getOrganizationId());
+    }
+
+    @GetMapping("/status/transitions/{id}")
+    @CsPermission(value = PermissionConstants.CLUE_MANAGEMENT_READ, resourceId = "{#id}", formType = FormKeyConstants.CLUE)
+    @Operation(summary = "获取线索可流转阶段列表")
+    public ClueStatusTransitionResponse getStatusTransitions(@PathVariable String id) {
+        return clueStatusTransitionService.getAvailableTransitions(id);
+    }
+
+    @PostMapping("/status/transition")
+    @CsPermission(value = PermissionConstants.CLUE_MANAGEMENT_UPDATE, resourceId = "{#request.id}", formType = FormKeyConstants.CLUE)
+    @Operation(summary = "执行线索状态流转")
+    public void transitionStatus(@Validated @RequestBody ClueStatusTransitionRequest request) {
+        clueStatusTransitionService.transition(request, SessionUtils.getUserId(), OrganizationContext.getOrganizationId());
     }
 
     @GetMapping("/delete/{id}")

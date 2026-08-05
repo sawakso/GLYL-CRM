@@ -39,12 +39,8 @@
   import { getThirdPartyConfig } from '@/api/modules';
   import { defaultThirdPartyConfigMap } from '@/config/business';
   import useLocalForage from '@/hooks/useLocalForage';
-  import useModal from '@/hooks/useModal.js';
-  import useLicenseStore from '@/store/modules/setting/license.js';
 
   const { t } = useI18n();
-  const { openModal } = useModal();
-  const licenseStore = useLicenseStore();
   const { setItem, getItem } = useLocalForage();
   const fullList = [
     // {
@@ -95,10 +91,7 @@
   }
 
   onBeforeMount(async () => {
-    if (!licenseStore.hasLicense()) {
-      openModal(licenseStore.getNoLicenseModalConfig());
-      return;
-    }
+    // 移除企业版 license 拦截: 仪表盘只需 DASHBOARD:READ 权限即可访问 (后端接口无 license 校验)
     await init();
     loadActiveDashboard();
   });

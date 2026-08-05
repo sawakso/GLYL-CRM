@@ -48,6 +48,7 @@ import {
   GetClueListUrl,
   GetCluePoolFollowRecordListUrl,
   GetCluePoolListUrl,
+  GetClueStatusTransitionsUrl,
   GetClueTabUrl,
   GetClueTransitionCustomerListUrl,
   GetClueUrl,
@@ -67,6 +68,7 @@ import {
   PreCheckPoolLeadImportUrl,
   ReTransitionCustomerUrl,
   TransformClueUrl,
+  TransitionClueStatusUrl,
   UpdateClueFollowPlanStatusUrl,
   UpdateClueFollowPlanUrl,
   UpdateClueFollowRecordUrl,
@@ -83,6 +85,8 @@ import type {
   ClueListItem,
   CluePoolListItem,
   CluePoolTableParams,
+  ClueStatusTransition,
+  ClueStatusTransitionParams,
   ClueTransitionCustomerParams,
   ConvertClueParams,
   PickClueParams,
@@ -134,6 +138,16 @@ export default function useProductApi(CDR: CordysAxios) {
   // 更新线索状态
   function updateClueStatus(data: { id: string; stage: string }) {
     return CDR.post({ url: UpdateClueStatusUrl, data });
+  }
+
+  // 获取线索可流转的阶段列表
+  function getClueStatusTransitions(clueId: string) {
+    return CDR.get<ClueStatusTransition>({ url: `${GetClueStatusTransitionsUrl}/${clueId}` });
+  }
+
+  // 执行线索状态流转
+  function transitionClueStatus(data: ClueStatusTransitionParams) {
+    return CDR.post({ url: TransitionClueStatusUrl, data });
   }
 
   // 获取线索列表
@@ -493,6 +507,8 @@ export default function useProductApi(CDR: CordysAxios) {
     addClue,
     updateClue,
     updateClueStatus,
+    getClueStatusTransitions,
+    transitionClueStatus,
     getClueList,
     batchTransferClue,
     batchToCluePool,

@@ -315,6 +315,7 @@ public class ApprovalTodoService {
                 case CONTRACT -> List.of("contract");
                 case ORDER -> List.of("order");
                 case INVOICE -> List.of("invoice");
+                case CLUE -> List.of("clue");
             };
             LambdaQueryWrapper<ApprovalInstance> wrapper = new LambdaQueryWrapper<>();
             wrapper.in(ApprovalInstance::getType, aliases)

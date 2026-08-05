@@ -98,12 +98,28 @@
           :loading="loading"
         />
       </n-form-item>
+      <n-form-item
+        label-placement="left"
+        path="triggerCondition"
+        :label="t('process.process.triggerCondition')"
+      >
+        <n-input
+          v-model:value="form.triggerCondition"
+          type="textarea"
+          :disabled="props.readonly"
+          :placeholder="t('process.process.triggerConditionPlaceholder')"
+          :autosize="{ minRows: 2, maxRows: 6 }"
+        />
+        <div class="mt-[4px] text-[12px] text-[var(--text-n3)]">
+          {{ t('process.process.triggerConditionTip') }}
+        </div>
+      </n-form-item>
     </n-form>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { DataTableColumn, NCheckbox, NDataTable, NForm, NFormItem, NRadio, NRadioGroup, NTooltip } from 'naive-ui';
+  import { DataTableColumn, NCheckbox, NDataTable, NForm, NFormItem, NInput, NRadio, NRadioGroup, NTooltip } from 'naive-ui';
 
   import { ProcessStatusEnum } from '@lib/shared/enums/process';
   import { useI18n } from '@lib/shared/hooks/useI18n';

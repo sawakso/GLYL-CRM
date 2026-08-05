@@ -62,6 +62,9 @@ public class ApprovalFlow extends BaseModel {
     @Schema(description = "状态权限配置（JSON格式）")
     private String statusPermissions;
 
+    @Schema(description = "触发条件配置（JSON格式，与高级筛选条件格式一致）")
+    private String triggerCondition;
+
     @Schema(description = "组织id")
     private String organizationId;
 }

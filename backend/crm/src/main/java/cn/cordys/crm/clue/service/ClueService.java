@@ -6,6 +6,8 @@ import cn.cordys.aspectj.constants.LogType;
 import cn.cordys.aspectj.context.OperationLogContext;
 import cn.cordys.aspectj.dto.LogContextInfo;
 import cn.cordys.aspectj.dto.LogDTO;
+import cn.cordys.crm.approval.annotation.HitApproval;
+import cn.cordys.crm.approval.constants.ExecuteTimingEnum;
 import cn.cordys.common.constants.BusinessModuleField;
 import cn.cordys.common.constants.FormKey;
 import cn.cordys.common.constants.InternalUser;
@@ -30,7 +32,10 @@ import cn.cordys.common.util.BeanUtils;
 import cn.cordys.common.util.JSON;
 import cn.cordys.common.util.Translator;
 import cn.cordys.common.utils.ConditionFilterUtils;
+import cn.cordys.crm.clue.constants.BizStatusEnum;
 import cn.cordys.crm.clue.constants.ClueStatus;
+import cn.cordys.crm.clue.constants.LeadsStageEnum;
+import cn.cordys.crm.clue.constants.LifeStatusEnum;
 import cn.cordys.crm.clue.domain.*;
 import cn.cordys.crm.clue.dto.ClueFollowDTO;
 import cn.cordys.crm.clue.dto.TransformCsAssociateDTO;
@@ -177,6 +182,8 @@ public class ClueService {
     private ExtUserMapper extUserMapper;
     @Resource
     private BaseMapper<ClueField> clueFieldMapper;
+    @Resource
+    private ClueStatusTransitionService clueStatusTransitionService;
     @Resource
     private BaseMapper<ClueFieldBlob> clueFieldBlobMapper;
     @Resource
@@ -438,6 +445,7 @@ public class ClueService {
         }).toList();
     }
 
+    @HitApproval(formKey = FormKey.CLUE, executeType = ExecuteTimingEnum.CREATE, operatorId = "{#userId}")
     @OperationLog(module = LogModule.CLUE_INDEX, type = LogType.ADD)
     public Clue add(ClueAddRequest request, String userId, String orgId) {
         productService.checkProductList(request.getProducts());
@@ -469,6 +477,7 @@ public class ClueService {
         return clue;
     }
 
+    @HitApproval(formKey = FormKey.CLUE, executeType = ExecuteTimingEnum.UPDATE, resourceId = "{#request.id}", operatorId = "{#userId}")
     @OperationLog(module = LogModule.CLUE_INDEX, type = LogType.UPDATE, resourceId = "{#request.id}")
     public Clue update(ClueUpdateRequest request, String userId, String orgId) {
         productService.checkProductList(request.getProducts());
@@ -557,6 +566,11 @@ public class ClueService {
         Clue clue = clueMapper.selectByPrimaryKey(request.getClueId());
         clue.setTransitionId(customer.getId());
         clue.setTransitionType(FormKey.CUSTOMER.name());
+        // 转换后自动流转状态到「已转化」
+        clue.setLastStage(clue.getStage());
+        clue.setStage(ClueStatus.CONVERTED.getKey());
+        clue.setLeadsStage(LeadsStageEnum.CONVERTED.getKey());
+        clue.setBizStatus(BizStatusEnum.CONVERTED.getKey());
         clue.setUpdateTime(System.currentTimeMillis());
         clue.setUpdateUser(userId);
         clueMapper.update(clue);
@@ -1006,6 +1020,13 @@ public class ClueService {
         TransformCsAssociateDTO transformCsAssociateDTO = transformCsAssociate(clue, transformCustomer, currentUser, orgId);
         clue.setTransitionId(transformCustomer.getId());
         clue.setTransitionType("CUSTOMER");
+        // 转换后自动流转状态到「已转化」
+        clue.setLastStage(clue.getStage());
+        clue.setStage(ClueStatus.CONVERTED.getKey());
+        clue.setLeadsStage(LeadsStageEnum.CONVERTED.getKey());
+        clue.setBizStatus(BizStatusEnum.CONVERTED.getKey());
+        clue.setUpdateTime(System.currentTimeMillis());
+        clue.setUpdateUser(currentUser);
         clueMapper.update(clue);
 
         // 客户转换通知

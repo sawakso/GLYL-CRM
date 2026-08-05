@@ -267,13 +267,7 @@
   async function menuChange(key: string, item: MenuOption) {
     const routeItem = item as unknown as AppRouteRecordRaw;
     const name = routeItem.meta?.hideChildrenInMenu ? getFirstRouterNameByCurrentRoute(routeItem.name as string) : key;
-    if (name === DashboardRouteEnum.DASHBOARD_INDEX && !licenseStore.hasLicense()) {
-      openModal(licenseStore.getNoLicenseModalConfig());
-      nextTick(() => {
-        menuValue.value = router.currentRoute.value.name as string;
-      });
-      return;
-    }
+    // 移除企业版 license 拦截: 仪表盘可直接访问 (只需 DASHBOARD:READ 权限)
     await router.push({ name });
     if (isRequiredExportRoute(key as OpportunityRouteEnum | ClueRouteEnum | CustomerRouteEnum)) {
       initExportPop();

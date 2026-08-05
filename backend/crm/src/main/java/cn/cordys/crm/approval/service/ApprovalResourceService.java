@@ -126,6 +126,7 @@ public class ApprovalResourceService {
         FORM_APPROVAL_TABLE.put(FormKey.CONTRACT.getKey(), "contract");
         FORM_APPROVAL_TABLE.put(FormKey.INVOICE.getKey(), "contract_invoice");
         FORM_APPROVAL_TABLE.put(FormKey.ORDER.getKey(), "sales_order");
+        FORM_APPROVAL_TABLE.put(FormKey.CLUE.getKey(), "clue");
     }
 
     public ResourceApprovalResponse resourceDetail(String resourceId) {

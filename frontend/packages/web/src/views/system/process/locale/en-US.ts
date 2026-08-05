@@ -150,4 +150,7 @@ export default {
   'process.process.flow.sameSubmitter.selfApprove': 'Submitter approves for themselves',
   'process.process.flow.sameSubmitter.transferSupervisor': 'Transfer to direct supervisor',
   'process.process.flow.ccUsers': 'CC users',
+  'process.process.triggerCondition': 'Trigger Condition',
+  'process.process.triggerConditionPlaceholder': 'Leave empty to trigger on all operations. Example: [{"field":"source","op":"eq","value":"MARKETING_FORM"}]',
+  'process.process.triggerConditionTip': 'JSON array format. Supported operators: eq/ne/in/notIn/isEmpty/isNotEmpty/contains. field is the form field internalKey. Only applies to update/delete timing.',
 };

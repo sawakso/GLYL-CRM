@@ -53,6 +53,11 @@
       </div>
     </template>
   </CrmOverviewDrawer>
+  <StatusTransitionModal
+    v-model:show="showStatusTransitionModal"
+    :clue-id="sourceId"
+    @success="emit('remove')"
+  />
 </template>
 
 <script setup lang="ts">
@@ -72,6 +77,7 @@
   import CrmOverviewDrawer from '@/components/business/crm-overview-drawer/index.vue';
   import type { TabContentItem } from '@/components/business/crm-tab-setting/type';
   import TransferForm from '@/components/business/crm-transfer-modal/transferForm.vue';
+  import StatusTransitionModal from '@/views/clueManagement/clue/components/statusTransitionModal.vue';
 
   import { assignClue, deleteCluePool, getClueHeaderList, pickClue } from '@/api/modules';
   import { defaultTransferForm } from '@/config/opportunity';
@@ -139,6 +145,14 @@
         iconType: 'primary',
       },
       popSlotContent: 'distributePopContent',
+    },
+    {
+      label: t('clue.statusTransition'),
+      key: 'statusTransition',
+      permission: ['CLUE_MANAGEMENT_POOL:UPDATE'],
+      text: false,
+      ghost: true,
+      class: 'n-btn-outline-primary',
     },
     {
       label: t('common.delete'),
@@ -212,6 +226,12 @@
     });
   }
 
+  // 状态流转
+  const showStatusTransitionModal = ref(false);
+  function handleStatusTransition() {
+    showStatusTransitionModal.value = true;
+  }
+
   // 领取
   async function handleClaim() {
     try {
@@ -243,6 +263,9 @@
         break;
       case 'pop-distribute':
         handleDistribute();
+        break;
+      case 'statusTransition':
+        handleStatusTransition();
         break;
       case 'delete':
         handleDelete();

@@ -2,6 +2,8 @@
 export const GetClueFormConfigUrl = '/lead/module/form'; // 获取线索表单配置
 export const UpdateClueUrl = '/lead/update'; // 更新线索
 export const UpdateClueStatusUrl = '/lead/status/update'; // 更新线索状态
+export const GetClueStatusTransitionsUrl = '/lead/status/transitions'; // 获取线索可流转阶段
+export const TransitionClueStatusUrl = '/lead/status/transition'; // 执行线索状态流转
 export const GetClueListUrl = '/lead/page'; // 分页查询线索
 export const GetClueTransitionCustomerListUrl = '/lead/transition/account/page'; // 线索转为客户列表
 export const AddClueUrl = '/lead/add'; // 添加线索

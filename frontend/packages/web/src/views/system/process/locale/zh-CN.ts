@@ -140,4 +140,7 @@ export default {
   'process.process.flow.sameSubmitter.selfApprove': '由提交人对自己审批',
   'process.process.flow.sameSubmitter.transferSupervisor': '转交给直属上级审批',
   'process.process.flow.ccUsers': '抄送人',
+  'process.process.triggerCondition': '触发条件',
+  'process.process.triggerConditionPlaceholder': '留空表示所有操作均触发审批。示例：[{"field":"source","op":"eq","value":"MARKETING_FORM"}]',
+  'process.process.triggerConditionTip': 'JSON数组格式，支持的操作符：eq/ne/in/notIn/isEmpty/isNotEmpty/contains。field为表单字段internalKey。留空则全部触发。仅对编辑/删除时机生效。',
 };

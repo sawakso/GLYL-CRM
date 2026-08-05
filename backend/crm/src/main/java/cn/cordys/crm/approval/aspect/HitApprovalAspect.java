@@ -3,6 +3,7 @@ package cn.cordys.crm.approval.aspect;
 import cn.cordys.aspectj.context.OperationLogContext;
 import cn.cordys.aspectj.dto.LogContextInfo;
 import cn.cordys.common.constants.FormKey;
+import cn.cordys.common.domain.BaseModuleFieldValue;
 import cn.cordys.common.dto.JsonDifferenceDTO;
 import cn.cordys.common.util.JSON;
 import cn.cordys.common.util.Translator;
@@ -16,6 +17,7 @@ import cn.cordys.crm.approval.dto.ApprovalPushParam;
 import cn.cordys.crm.approval.handler.ApprovalResourceHandler;
 import cn.cordys.crm.approval.service.ApprovalFlowService;
 import cn.cordys.crm.approval.service.ApprovalResourceService;
+import cn.cordys.crm.system.service.ModuleFormService;
 import cn.cordys.crm.system.service.SysOperationLogService;
 import cn.cordys.security.SessionUtils;
 import jakarta.annotation.Resource;
@@ -33,6 +35,10 @@ import org.springframework.core.StandardReflectionParameterNameDiscoverer;
 import org.springframework.core.annotation.Order;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
@@ -66,6 +72,8 @@ public class HitApprovalAspect {
 	private ApprovalResourceService approvalResourceService;
 	@Resource
 	private SysOperationLogService sysOperationLogService;
+	@Resource
+	private ModuleFormService moduleFormService;
 
 
 	@Pointcut("@annotation(cn.cordys.crm.approval.annotation.HitApproval)")
@@ -107,6 +115,11 @@ public class HitApprovalAspect {
 		ExecuteTimingEnum executeTiming = getExecuteTimingEnum(annotation, resourceId);
 		// 检查是否命中审批流
 		boolean hit = checkHitApprovalFlow(annotation.formKey(), executeTiming, organizationId);
+
+		// 触发条件评估：命中审批流但配置了触发条件时，检查资源数据是否满足条件
+		if (hit && executeTiming != ExecuteTimingEnum.CREATE && StringUtils.isNotBlank(resourceId)) {
+			hit = evaluateTriggerCondition(annotation.formKey().getKey(), resourceId, organizationId);
+		}
 
 		// UPDATE 前置处理：保存编辑前快照（用于审批驳回/撤回时回退）
 		if (executeTiming == ExecuteTimingEnum.UPDATE && hit) {
@@ -349,6 +362,72 @@ public class HitApprovalAspect {
 			deleteAction.run();
 		} finally {
 			SKIP_APPROVAL.remove();
+		}
+	}
+
+	/**
+	 * 评估触发条件：从审批流获取 triggerCondition，解析后与资源字段值比对
+	 * 条件格式：[{"field":"source","op":"eq","value":"MARKETING_FORM"}, ...]
+	 * 支持的操作符：eq/ne/gt/lt/gte/lte/in/notIn/isEmpty/isNotEmpty/contains
+	 * 所有条件为 AND 关系
+	 * @return true=满足条件（触发审批），false=不满足（跳过审批）
+	 */
+	private boolean evaluateTriggerCondition(String formKey, String resourceId, String orgId) {
+		try {
+			ApprovalFlow flow = approvalFlowService.getEnabledFlow(formKey, orgId);
+			if (flow == null || StringUtils.isBlank(flow.getTriggerCondition())) {
+				return true; // 无触发条件，默认触发
+			}
+			List<Map> conditions = JSON.parseArray(flow.getTriggerCondition(), Map.class);
+			if (conditions == null || conditions.isEmpty()) {
+				return true;
+			}
+			// 获取资源字段值
+			List<BaseModuleFieldValue> fieldValues = moduleFormService.compressResourceDetail(formKey, resourceId);
+			if (fieldValues == null) {
+				return true; // 无字段值，默认触发
+			}
+			Map<String, Object> valueMap = new HashMap<>();
+			for (BaseModuleFieldValue fv : fieldValues) {
+				valueMap.put(fv.getFieldId(), fv.getFieldValue());
+			}
+			// 逐条评估（AND 关系，全部满足才触发）
+			for (Map cond : conditions) {
+				String field = (String) cond.get("field");
+				String op = (String) cond.get("op");
+				Object condValue = cond.get("value");
+				Object actualValue = valueMap.get(field);
+				if (!matchCondition(actualValue, op, condValue)) {
+					return false;
+				}
+			}
+			return true;
+		} catch (Exception e) {
+			log.warn("触发条件评估失败，默认触发审批", e);
+			return true; // 评估失败时不阻塞
+		}
+	}
+
+	private boolean matchCondition(Object actual, String op, Object expected) {
+		if (actual == null && !"isEmpty".equals(op)) return false;
+		String actualStr = actual != null ? String.valueOf(actual) : "";
+		switch (op) {
+			case "eq": return actualStr.equals(String.valueOf(expected));
+			case "ne": return !actualStr.equals(String.valueOf(expected));
+			case "contains": return actualStr.contains(String.valueOf(expected));
+			case "isEmpty": return actual == null || actualStr.isEmpty();
+			case "isNotEmpty": return actual != null && !actualStr.isEmpty();
+			case "in":
+				if (expected instanceof List<?> list) {
+					return list.stream().anyMatch(v -> actualStr.equals(String.valueOf(v)));
+				}
+				return false;
+			case "notIn":
+				if (expected instanceof List<?> list) {
+					return list.stream().noneMatch(v -> actualStr.equals(String.valueOf(v)));
+				}
+				return true;
+			default: return true;
 		}
 	}
 }

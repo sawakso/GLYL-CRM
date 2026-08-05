@@ -26,6 +26,11 @@ export interface ClueDetail {
   departmentName: string;
   stage: string;
   lastStage: string;
+  leadsStage: string;
+  bizStatus: string;
+  lifeStatus: string;
+  lockStatus: string;
+  isOvertime: boolean;
   createUser: string;
   updateUser: string;
   createTime: number;
@@ -86,4 +91,32 @@ export interface ConvertClueParams {
   clueId: string;
   oppCreated: boolean;
   oppName: string;
+}
+
+/** 状态流转 - 可到达的阶段选项 */
+export interface TransitionOption {
+  stage: string;
+  stageName: string;
+  suggestedLeadsStage: string;
+  suggestedBizStatus: string;
+}
+
+/** 状态流转 - 可用阶段列表响应 */
+export interface ClueStatusTransition {
+  currentStage: string;
+  currentStageName: string;
+  currentLeadsStage: string;
+  currentBizStatus: string;
+  currentLifeStatus: string;
+  availableTransitions: TransitionOption[];
+}
+
+/** 状态流转 - 执行流转请求 */
+export interface ClueStatusTransitionParams {
+  id: string;
+  stage: string;
+  leadsStage?: string;
+  bizStatus?: string;
+  lifeStatus?: string;
+  remark?: string;
 }

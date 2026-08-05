@@ -53,4 +53,10 @@ export default {
   'clue.backClueList': 'Return to lead list',
   'clue.afterConvertGoDetailText': '{name} details',
   'clue.countDownTip': 'Return to lead list in {count} seconds, or manually return to lead list',
+  'clue.statusTransition': 'Status Transition',
+  'clue.currentStage': 'Current Stage',
+  'clue.selectTargetStage': 'Select Target Stage',
+  'clue.leadsStage': 'Leads Stage',
+  'clue.bizStatus': 'Biz Status',
+  'clue.noAvailableTransitions': 'No available transitions from current stage',
 };

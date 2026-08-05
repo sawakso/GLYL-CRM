@@ -46,4 +46,10 @@ export default {
   'clue.backClueList': '返回线索列表',
   'clue.afterConvertGoDetailText': '{name}详情',
   'clue.countDownTip': '{count} 秒后回到线索列表，也可手动回到线索列表',
+  'clue.statusTransition': '状态流转',
+  'clue.currentStage': '当前阶段',
+  'clue.selectTargetStage': '选择目标阶段',
+  'clue.leadsStage': '线索阶段',
+  'clue.bizStatus': '业务状态',
+  'clue.noAvailableTransitions': '当前状态无可流转阶段',
 };

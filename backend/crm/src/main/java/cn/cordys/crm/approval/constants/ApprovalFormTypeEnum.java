@@ -14,7 +14,9 @@ public enum ApprovalFormTypeEnum implements ValueEnum<String> {
     /** 发票 */
     INVOICE("INV-APV", "CONTRACT_INVOICE", "invoice"),
     /** 订单 */
-    ORDER("ORD-APV", "ORDER", "order");
+    ORDER("ORD-APV", "ORDER", "order"),
+    /** 线索 */
+    CLUE("CLU-APV", "CLUE", "clue");
 
     private final String prefix;
     private final String permissionId;

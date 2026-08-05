@@ -77,6 +77,11 @@
     @success="emit('remove')"
     @finish="show = false"
   />
+  <StatusTransitionModal
+    v-model:show="showStatusTransitionModal"
+    :clue-id="sourceId"
+    @success="emit('refresh')"
+  />
 </template>
 
 <script setup lang="ts">
@@ -99,6 +104,7 @@
   import type { TabContentItem } from '@/components/business/crm-tab-setting/type';
   import TransferForm from '@/components/business/crm-transfer-modal/transferForm.vue';
   import convertClueModal from './convertClueModal.vue';
+  import StatusTransitionModal from './statusTransitionModal.vue';
 
   import { batchTransferClue, deleteClue, getClueHeaderList } from '@/api/modules';
   import { defaultTransferForm } from '@/config/opportunity';
@@ -209,6 +215,12 @@
     showConvertClueModal.value = true;
   }
 
+  // 状态流转
+  const showStatusTransitionModal = ref(false);
+  function handleStatusTransition() {
+    showStatusTransitionModal.value = true;
+  }
+
   function handleSelect(key: string) {
     switch (key) {
       case 'pop-transfer':
@@ -222,6 +234,9 @@
         break;
       case 'moveIntoCluePool':
         handleMoveToLeadPool();
+        break;
+      case 'statusTransition':
+        handleStatusTransition();
         break;
       default:
         break;
@@ -250,6 +265,14 @@
       {
         label: t('clue.convert'),
         key: 'convert',
+        text: false,
+        ghost: true,
+        class: 'n-btn-outline-primary',
+        permission: ['CLUE_MANAGEMENT:UPDATE'],
+      },
+      {
+        label: t('clue.statusTransition'),
+        key: 'statusTransition',
         text: false,
         ghost: true,
         class: 'n-btn-outline-primary',

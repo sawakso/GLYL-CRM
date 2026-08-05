@@ -130,6 +130,11 @@
     :clue-id="activeClueId"
     @success="removeItemFromList(activeClueId)"
   />
+  <StatusTransitionModal
+    v-model:show="showStatusTransitionModal"
+    :clue-id="activeClueId"
+    @success="handleRefresh"
+  />
 
   <CrmBatchEditModal
     v-model:visible="showEditModal"
@@ -172,6 +177,7 @@
   import TransferForm from '@/components/business/crm-transfer-modal/transferForm.vue';
   import CrmViewSelect from '@/components/business/crm-view-select/index.vue';
   import convertClueModal from './convertClueModal.vue';
+  import StatusTransitionModal from './statusTransitionModal.vue';
 
   import { batchDeleteClue, batchTransferClue, deleteClue } from '@/api/modules';
   import { baseFilterConfigList, getLeadHomeConditions } from '@/config/clue';
@@ -451,6 +457,12 @@
     showConvertClueModal.value = true;
   }
 
+  // 状态流转
+  const showStatusTransitionModal = ref(false);
+  function handleStatusTransition() {
+    showStatusTransitionModal.value = true;
+  }
+
   const {
     fieldList: clueFormFields,
     linkFormFieldMap,
@@ -489,6 +501,9 @@
         break;
       case 'convert':
         handleConvert();
+        break;
+      case 'statusTransition':
+        handleStatusTransition();
         break;
       case 'moveIntoCluePool':
         handleMoveToLeadPool(row);
@@ -541,6 +556,11 @@
                       {
                         label: t('clue.convert'),
                         key: 'convert',
+                        permission: ['CLUE_MANAGEMENT:UPDATE'],
+                      },
+                      {
+                        label: t('clue.statusTransition'),
+                        key: 'statusTransition',
                         permission: ['CLUE_MANAGEMENT:UPDATE'],
                       },
                       {

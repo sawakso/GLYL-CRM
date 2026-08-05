@@ -174,6 +174,7 @@ export const defaultMoreConfig: MoreSettingsParams = {
   requireComment: false,
   permissions: [],
   statusPermissions: [],
+  triggerCondition: '',
 };
 
 export const defaultWebHookConfig: ApprovalWebhookConfig = {
@@ -201,6 +202,10 @@ export const businessTypeOptions = [
   {
     label: t('module.order'),
     value: FormDesignKeyEnum.ORDER,
+  },
+  {
+    label: t('menu.clue'),
+    value: FormDesignKeyEnum.CLUE,
   },
 ];
 

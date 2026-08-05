@@ -313,6 +313,8 @@ export const {
   addLeadPoolView,
   batchUpdateLead,
   updateClueStatus,
+  getClueStatusTransitions,
+  transitionClueStatus,
   dragLeadPoolView,
   batchTransferClue,
   getClueFormConfig,

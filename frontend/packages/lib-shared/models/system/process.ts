@@ -178,6 +178,7 @@ export interface MoreSettingsParams {
   requireComment: boolean;
   permissions: BaseItem[];
   statusPermissions: StatusPermissions[];
+  triggerCondition: string;
 }
 
 export interface ApprovalNodeLinkResponse {
