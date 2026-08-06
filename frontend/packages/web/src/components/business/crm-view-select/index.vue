@@ -212,10 +212,14 @@
     nextTick(async () => {
       // 如果上一次的值存在则取上一次，不存在就取固定视图的第一个
       const lastTab = await viewStore.getActiveView(props.type);
+      const canViewDept = tabList.value.some((tab) => tab.name === 'DEPARTMENT');
       if (lastTab && sortData.value.find((item) => item.id === lastTab)) {
-        activeTab.value = lastTab;
+        // 部门负责人(有部门视图)即使记住"我的线索", 也默认切到"部门线索", 避免看不到本部门数据
+        activeTab.value = canViewDept && lastTab === 'SELF' ? 'DEPARTMENT' : lastTab;
       } else {
-        activeTab.value = tags.value[0]?.id;
+        // 默认优先选"部门/全部"视图(能看更多数据), 避免落在"我的线索"看不到本部门
+        const preferred = ['DEPARTMENT', 'ALL'].find((id) => sortData.value.find((item) => item.id === id));
+        activeTab.value = preferred || tags.value[0]?.id;
       }
     });
   });

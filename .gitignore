@@ -104,3 +104,11 @@ Thumbs.db
 
 qywx.json
 .gitattributes
+
+# 调试/临时脚本
+/_*.cjs
+/_*.py
+/_*.js
+/_*.txt
+/_*.json
+/test_tmp/

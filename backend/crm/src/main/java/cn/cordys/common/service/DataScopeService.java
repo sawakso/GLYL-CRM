@@ -8,6 +8,7 @@ import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.permission.PermissionCache;
 import cn.cordys.common.response.result.CrmHttpResultCode;
 import cn.cordys.common.util.Translator;
+import cn.cordys.crm.system.domain.DepartmentCommander;
 import cn.cordys.crm.system.domain.OrganizationUser;
 import cn.cordys.crm.system.service.DepartmentService;
 import cn.cordys.crm.system.service.RoleService;
@@ -31,6 +32,8 @@ import java.util.stream.Collectors;
 public class DataScopeService {
     @Resource
     private DepartmentService departmentService;
+    @Resource
+    private BaseMapper<DepartmentCommander> departmentCommanderMapper;
     @Resource
     private BaseMapper<OrganizationUser> organizationUserMapper;
     @Resource
@@ -101,12 +104,47 @@ public class DataScopeService {
 
         if (CollectionUtils.isEmpty(userDeptRoles)
                 && CollectionUtils.isEmpty(customDeptRoles)) {
+            // 没有部门角色权限时, 检查用户是否为部门负责人: 是则按负责部门(含子部门)查询
+            List<String> commanderDeptIds = getCommanderDeptIds(userId, orgId);
+            if (CollectionUtils.isNotEmpty(commanderDeptIds)) {
+                DeptDataPermissionDTO commanderPermission = new DeptDataPermissionDTO();
+                List<BaseTreeNode> tree = departmentService.getTree(orgId);
+                commanderPermission.getDeptIds().addAll(getDeptIdsWithChild(tree, new HashSet<>(commanderDeptIds)));
+                return commanderPermission;
+            }
             // 如果没有部门权限,则默认只能查看自己的数据
             deptDataPermission.setSelf(true);
             return deptDataPermission;
         }
 
         return getDeptDataPermissionForDept(userId, orgId, dataScopeRoleMap, permission);
+    }
+
+    /**
+     * 获取用户作为"部门负责人"所负责的部门ID列表。
+     * <p>部门负责人在组织架构(设置部门负责人)中配置, 存于 sys_department_commander 表。</p>
+     *
+     * @param userId 用户ID
+     * @param orgId  组织ID
+     * @return 负责的部门ID列表(可能为空)
+     */
+    public List<String> getCommanderDeptIds(String userId, String orgId) {
+        try {
+            DepartmentCommander example = new DepartmentCommander();
+            example.setUserId(userId);
+            List<DepartmentCommander> commanders = departmentCommanderMapper.select(example);
+            if (CollectionUtils.isEmpty(commanders)) {
+                return List.of();
+            }
+            return commanders.stream()
+                    .map(DepartmentCommander::getDepartmentId)
+                    .filter(StringUtils::isNotBlank)
+                    .distinct()
+                    .toList();
+        } catch (Exception e) {
+            // 部门负责人查询异常不影响主流程, 回退为仅看自己
+            return List.of();
+        }
     }
 
     private DeptDataPermissionDTO getDeptDataPermissionForAllPermission(String userId, String orgId) {

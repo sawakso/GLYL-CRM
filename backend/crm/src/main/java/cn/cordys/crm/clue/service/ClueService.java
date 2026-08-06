@@ -921,7 +921,13 @@ public class ClueService {
 
     public ResourceTabEnableDTO getTabEnableConfig(String userId, String organizationId) {
         List<RolePermissionDTO> rolePermissions = permissionCache.getRolePermissions(userId, organizationId);
-        return PermissionUtils.getTabEnableConfig(userId, PermissionConstants.CLUE_MANAGEMENT_READ, rolePermissions);
+        ResourceTabEnableDTO tabConfig = PermissionUtils.getTabEnableConfig(userId, PermissionConstants.CLUE_MANAGEMENT_READ, rolePermissions);
+        // 部门负责人: 即使角色无部门数据权限, 也应能看到"部门线索"tab
+        if (!Boolean.TRUE.equals(tabConfig.getDept())
+                && CollectionUtils.isNotEmpty(dataScopeService.getCommanderDeptIds(userId, organizationId))) {
+            tabConfig.setDept(true);
+        }
+        return tabConfig;
     }
 
 
