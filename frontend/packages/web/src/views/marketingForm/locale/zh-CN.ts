@@ -27,6 +27,8 @@ export default {
   'marketingForm.copySuccess': '链接已复制',
   'marketingForm.preview': '预览',
   'marketingForm.previewTip': '预览模式',
+  'marketingForm.previewPc': 'PC 端预览',
+  'marketingForm.previewMobile': '手机端预览',
   'marketingForm.previewSubmit': '提交',
   'marketingForm.previewValidateFailed': '请完善必填项后提交',
   'marketingForm.previewSuccess': '模拟提交成功（预览模式，未真实入库）',

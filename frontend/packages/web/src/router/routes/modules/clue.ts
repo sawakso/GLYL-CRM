@@ -10,7 +10,7 @@ const lead: AppRouteRecordRaw = {
   component: DEFAULT_LAYOUT,
   meta: {
     locale: 'module.clueManagement',
-    permissions: ['CLUE_MANAGEMENT:READ', 'CLUE_MANAGEMENT_POOL:READ'],
+    permissions: ['CLUE_MANAGEMENT:READ'],
     icon: 'iconicon_clue',
     hideChildrenInMenu: true,
     collapsedLocale: 'menu.clue',
@@ -24,16 +24,6 @@ const lead: AppRouteRecordRaw = {
         locale: 'menu.clue',
         isTopMenu: true,
         permissions: ['CLUE_MANAGEMENT:READ'],
-      },
-    },
-    {
-      path: 'leadPool',
-      name: ClueRouteEnum.CLUE_MANAGEMENT_POOL,
-      component: () => import('@/views/clueManagement/cluePool/index.vue'),
-      meta: {
-        locale: 'module.cluePool',
-        isTopMenu: true,
-        permissions: ['CLUE_MANAGEMENT_POOL:READ'],
       },
     },
   ],

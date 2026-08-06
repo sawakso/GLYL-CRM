@@ -116,6 +116,7 @@ export interface FormCreateField {
   optionSource?: 'ref' | 'custom'; // 选项来源,自定义还是引用
   refId?: string | null; // 引用的字段id
   refFormKey?: string; // 引用字段第一层
+  isNameField?: boolean; // 是否为姓名(必填)字段
   customOptions?: FormCreateFieldOption[]; // 自定义字段的选项数据
   multiple?: boolean;
   options?: FormCreateFieldOption[];

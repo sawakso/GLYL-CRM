@@ -53,32 +53,54 @@
               filterable
               @update:value="(v: string) => onFieldChange(cond, v)"
             />
-            <n-select v-model:value="cond.operator" :options="operatorOptions" :placeholder="t('module.clue.operator')" class="w-[96px]" size="small" />
+            <n-select
+              v-model:value="cond.operator"
+              :options="operatorOptions"
+              :placeholder="t('module.clue.operator')"
+              class="w-[96px]"
+              size="small"
+            />
             <n-select
               v-if="isLocationCond(cond)"
-              v-model:value="cond.value"
+              :value="
+                cond.value
+                  ? String(cond.value)
+                      .split(/[,，;；|]/)
+                      .filter(Boolean)
+                  : []
+              "
               :options="provinceOptions"
               :placeholder="t('module.clue.province')"
-              class="w-[150px]"
-              size="small"
+              multiple
               filterable
               clearable
+              class="w-[220px]"
+              size="small"
+              @update:value="(v: string[]) => (cond.value = (v || []).join(','))"
             />
             <n-select
               v-else-if="currentFieldIsDataSource(cond)"
-              v-model:value="cond.value"
+              :value="
+                cond.value
+                  ? String(cond.value)
+                      .split(/[,，;；|]/)
+                      .filter(Boolean)
+                  : []
+              "
               :options="currentFieldDataSourceOptions(cond)"
               :placeholder="t('module.clue.matchValue')"
-              class="w-[200px]"
-              size="small"
+              multiple
               filterable
               clearable
+              class="w-[220px]"
+              size="small"
+              @update:value="(v: string[]) => (cond.value = (v || []).join(','))"
             />
             <n-input
               v-else
               v-model:value="cond.value"
-              :placeholder="t('module.clue.matchValue')"
-              class="w-[200px]"
+              :placeholder="t('module.clue.matchValueMulti')"
+              class="w-[220px]"
               size="small"
             />
           </template>
@@ -92,7 +114,13 @@
               size="small"
               filterable
             />
-            <n-select v-model:value="cond.operator" :options="timeOperatorOptions" :placeholder="t('module.clue.operator')" class="w-[96px]" size="small" />
+            <n-select
+              v-model:value="cond.operator"
+              :options="timeOperatorOptions"
+              :placeholder="t('module.clue.operator')"
+              class="w-[96px]"
+              size="small"
+            />
             <n-date-picker
               v-if="cond.operator !== 'BETWEEN'"
               :value="cond.value ? Number(cond.value) : null"
@@ -129,7 +157,11 @@
       <!-- 目标类型 -->
       <div class="mt-[12px] flex items-center gap-[12px]">
         <span class="text-[12px] text-[var(--text-n5)]">{{ t('module.clue.assignTargetType') }}</span>
-        <n-radio-group v-model:value="rule.assignTargetType" size="small" @update:value="onTargetTypeChange(rule, $event)">
+        <n-radio-group
+          v-model:value="rule.assignTargetType"
+          size="small"
+          @update:value="onTargetTypeChange(rule, $event)"
+        >
           <n-radio value="USER">{{ t('module.clue.assignTargetUser') }}</n-radio>
           <n-radio value="DEPT">{{ t('module.clue.assignTargetDept') }}</n-radio>
         </n-radio-group>
@@ -160,7 +192,18 @@
 
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue';
-  import { NButton, NCheckbox, NEmpty, NInput, NRadio, NRadioGroup, NSelect, NSpace, NSwitch, useMessage } from 'naive-ui';
+  import {
+    NButton,
+    NCheckbox,
+    NEmpty,
+    NInput,
+    NRadio,
+    NRadioGroup,
+    NSelect,
+    NSpace,
+    NSwitch,
+    useMessage,
+  } from 'naive-ui';
 
   import { FieldTypeEnum, FormDesignKeyEnum } from '@lib/shared/enums/formDesignEnum';
   import { MemberSelectTypeEnum } from '@lib/shared/enums/moduleEnum';
@@ -267,10 +310,40 @@
 
   // 中国省份下拉
   const PROVINCES = [
-    '北京市', '天津市', '上海市', '重庆市', '河北省', '山西省', '辽宁省', '吉林省', '黑龙江省', '江苏省',
-    '浙江省', '安徽省', '福建省', '江西省', '山东省', '河南省', '湖北省', '湖南省', '广东省', '海南省',
-    '四川省', '贵州省', '云南省', '陕西省', '甘肃省', '青海省', '台湾省', '内蒙古自治区', '广西壮族自治区',
-    '西藏自治区', '宁夏回族自治区', '新疆维吾尔自治区', '香港特别行政区', '澳门特别行政区',
+    '北京市',
+    '天津市',
+    '上海市',
+    '重庆市',
+    '河北省',
+    '山西省',
+    '辽宁省',
+    '吉林省',
+    '黑龙江省',
+    '江苏省',
+    '浙江省',
+    '安徽省',
+    '福建省',
+    '江西省',
+    '山东省',
+    '河南省',
+    '湖北省',
+    '湖南省',
+    '广东省',
+    '海南省',
+    '四川省',
+    '贵州省',
+    '云南省',
+    '陕西省',
+    '甘肃省',
+    '青海省',
+    '台湾省',
+    '内蒙古自治区',
+    '广西壮族自治区',
+    '西藏自治区',
+    '宁夏回族自治区',
+    '新疆维吾尔自治区',
+    '香港特别行政区',
+    '澳门特别行政区',
   ];
   const provinceOptions = computed(() => PROVINCES.map((p) => ({ label: p, value: p })));
 
@@ -409,7 +482,12 @@
     if (!rule.conditionList) {
       rule.conditionList = [];
     }
-    rule.conditionList.push({ fieldId: '', operator: 'EQUALS', value: '', conditionType: 'FIELD' } as AssignRuleCondition);
+    rule.conditionList.push({
+      fieldId: '',
+      operator: 'EQUALS',
+      value: '',
+      conditionType: 'FIELD',
+    } as AssignRuleCondition);
   }
 
   function removeCondition(rule: CluePoolAssignRuleParams, index: number) {

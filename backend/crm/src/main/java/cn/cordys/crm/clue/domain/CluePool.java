@@ -30,6 +30,9 @@ public class CluePool extends BaseModel {
     @Schema(description = "启用/禁用")
     private Boolean enable;
 
+    @Schema(description = "是否默认线索池(市场表单未配置目标池时进此池)")
+    private Boolean isDefault;
+
     @Schema(description = "自动回收")
     private Boolean auto;
 

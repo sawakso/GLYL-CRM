@@ -311,6 +311,7 @@ public class ApprovalResourceService {
             case CONTRACT -> LogModule.CONTRACT_INDEX;
             case INVOICE -> LogModule.CONTRACT_INVOICE;
             case ORDER -> LogModule.ORDER_INDEX;
+            case CLUE -> LogModule.CLUE_INDEX;
             default -> null;
         };
     }

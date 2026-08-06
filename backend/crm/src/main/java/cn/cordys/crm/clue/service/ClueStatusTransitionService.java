@@ -147,9 +147,14 @@ public class ClueStatusTransitionService {
         if (StringUtils.isNotBlank(request.getLifeStatus())) {
             updateClue.setLifeStatus(request.getLifeStatus());
         }
-        // 终态时自动设置生命状态为作废
-        if (targetStage.isTerminal() && StringUtils.isBlank(request.getLifeStatus())) {
+        // 仅失败/无效关闭类终态自动设置生命状态为作废；
+        // 成功/已转化(CONVERTED/SUCCESS)为有效终态，保持活跃(ACTIVE)
+        if (StringUtils.isBlank(request.getLifeStatus()) &&
+                (targetStage == ClueStatus.FAIL || targetStage == ClueStatus.CLOSED)) {
             updateClue.setLifeStatus(LifeStatusEnum.INVALID.getKey());
+        } else if (StringUtils.isBlank(request.getLifeStatus()) &&
+                (targetStage == ClueStatus.SUCCESS || targetStage == ClueStatus.CONVERTED)) {
+            updateClue.setLifeStatus(LifeStatusEnum.ACTIVE.getKey());
         }
 
         // 6. 执行更新

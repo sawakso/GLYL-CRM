@@ -8,7 +8,6 @@
           </div>
         </template>
         <Lead v-if="tab.name === 'clue'" />
-        <Pool v-else-if="tab.name === 'cluePool'" />
       </van-tab>
     </van-tabs>
   </div>
@@ -18,7 +17,6 @@
   import { useI18n } from '@lib/shared/hooks/useI18n';
 
   import Lead from './clue/index.vue';
-  import Pool from './pool/index.vue';
 
   import { hasAnyPermission } from '@/utils/permission';
 
@@ -35,11 +33,6 @@
         name: 'clue',
         title: t('menu.clue'),
         permission: ['CLUE_MANAGEMENT:READ'],
-      },
-      {
-        name: 'cluePool',
-        title: t('menu.cluePool'),
-        permission: ['CLUE_MANAGEMENT_POOL:READ'],
       },
     ].filter((item) => hasAnyPermission(item.permission))
   );

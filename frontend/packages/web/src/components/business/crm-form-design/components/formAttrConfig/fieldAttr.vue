@@ -8,7 +8,9 @@
         </div>
         <n-input
           v-model:value="fieldConfig.name"
-          :disabled="fieldConfig.disabledProps?.includes('name')"
+          :disabled="
+            fieldConfig.disabledProps?.includes('name') || fieldConfig.isNameField || fieldConfig.businessKey === 'name'
+          "
           :maxlength="16"
           :placeholder="t('common.pleaseInput')"
           :status="isNameRepeat ? 'error' : undefined"

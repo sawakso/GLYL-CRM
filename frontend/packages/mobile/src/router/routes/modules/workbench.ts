@@ -28,12 +28,7 @@ const workbench: AppRouteRecordRaw = {
       component: () => import('@/views/workbench/duplicateCheck/index.vue'),
       meta: {
         locale: 'menu.duplicateCheck',
-        permissions: [
-          'CUSTOMER_MANAGEMENT:READ',
-          'CUSTOMER_MANAGEMENT_POOL:READ',
-          'CLUE_MANAGEMENT:READ',
-          'CLUE_MANAGEMENT_POOL:READ',
-        ],
+        permissions: ['CUSTOMER_MANAGEMENT:READ', 'CUSTOMER_MANAGEMENT_POOL:READ', 'CLUE_MANAGEMENT:READ'],
         depth: 1,
         isCache: true,
       },

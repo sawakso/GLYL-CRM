@@ -479,6 +479,47 @@ public class CluePoolService {
     }
 
     /**
+     * 获取组织下所有线索池（用于选项解析，如所属线索池字段根据 poolId 显示池名称）
+     *
+     * @param organizationId 组织ID
+     * @return 线索池列表
+     */
+    public List<CluePool> getAllPool(String organizationId) {
+        return extCluePoolMapper.getAllPool(organizationId);
+    }
+
+    /**
+     * 获取组织默认线索池（市场表单未配置目标池时使用）
+     * <p>
+     * 优先级：is_default=true 的启用池 → 名称含「新进」的启用池（兼容历史数据） → 第一个启用池
+     *
+     * @param organizationId 组织ID
+     * @return 默认线索池，无则 null
+     */
+    public CluePool getDefaultPool(String organizationId) {
+        if (StringUtils.isBlank(organizationId)) {
+            return null;
+        }
+        LambdaQueryWrapper<CluePool> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(CluePool::getOrganizationId, organizationId)
+                .eq(CluePool::getEnable, true);
+        List<CluePool> pools = cluePoolMapper.selectListByLambda(wrapper);
+        if (CollectionUtils.isEmpty(pools)) {
+            return null;
+        }
+        // 1. 显式默认池
+        return pools.stream()
+                .filter(p -> Boolean.TRUE.equals(p.getIsDefault()))
+                .findFirst()
+                // 2. 兼容历史：名称为「新进客户线索池」的池（用户原要求）
+                .orElseGet(() -> pools.stream()
+                        .filter(p -> StringUtils.isNotBlank(p.getName()) && p.getName().contains("新进"))
+                        .findFirst()
+                        // 3. 兜底：第一个启用池
+                        .orElse(pools.get(0)));
+    }
+
+    /**
      * 匹配多个范围的线索池
      *
      * @param scopeIds 范围ID集合

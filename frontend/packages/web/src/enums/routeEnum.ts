@@ -22,7 +22,6 @@ export enum OpportunityRouteEnum {
 export enum ClueRouteEnum {
   CLUE_MANAGEMENT = 'leadManagement',
   CLUE_MANAGEMENT_CLUE = 'leadManagementLead',
-  CLUE_MANAGEMENT_POOL = 'leadManagementPool',
 }
 
 export enum CustomerRouteEnum {

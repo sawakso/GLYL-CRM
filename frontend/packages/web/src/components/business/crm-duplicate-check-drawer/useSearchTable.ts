@@ -10,7 +10,6 @@ import useTable from '@/components/pure/crm-table/useTable';
 import CrmTableButton from '@/components/pure/crm-table-button/index.vue';
 
 import {
-  getGlobalCluePoolList,
   getGlobalCustomerContactList,
   getGlobalCustomerList,
   getGlobalOpenSeaCustomerList,
@@ -27,7 +26,6 @@ export type SearchTableKey =
   | FormDesignKeyEnum.SEARCH_ADVANCED_CUSTOMER
   | FormDesignKeyEnum.SEARCH_ADVANCED_CONTACT
   | FormDesignKeyEnum.SEARCH_ADVANCED_PUBLIC
-  | FormDesignKeyEnum.SEARCH_ADVANCED_CLUE_POOL
   | FormDesignKeyEnum.SEARCH_ADVANCED_OPPORTUNITY;
 
 export interface SearchTableProps {
@@ -41,14 +39,12 @@ export const getSearchListApiMap: Record<SearchTableKey, (data: any) => Promise<
   [FormDesignKeyEnum.SEARCH_ADVANCED_CUSTOMER]: getGlobalCustomerList,
   [FormDesignKeyEnum.SEARCH_ADVANCED_CONTACT]: getGlobalCustomerContactList,
   [FormDesignKeyEnum.SEARCH_ADVANCED_PUBLIC]: getGlobalOpenSeaCustomerList,
-  [FormDesignKeyEnum.SEARCH_ADVANCED_CLUE_POOL]: getGlobalCluePoolList,
   [FormDesignKeyEnum.SEARCH_ADVANCED_OPPORTUNITY]: globalSearchOptPage,
 };
 
 // 固定展示字段
 export const fixedFieldKeyListMap: Record<SearchTableKey, string[]> = {
   [FormDesignKeyEnum.SEARCH_ADVANCED_CLUE]: ['name', 'owner', 'departmentId', 'products'], // 公司名称 、负责人、部门、意向产品
-  [FormDesignKeyEnum.SEARCH_ADVANCED_CLUE_POOL]: ['name', 'products', 'poolName'], // 公司名称 、意向产品、线索池名称
   [FormDesignKeyEnum.SEARCH_ADVANCED_CUSTOMER]: ['name', 'owner', 'departmentId'], // 客户名称、负责人、部门
   [FormDesignKeyEnum.SEARCH_ADVANCED_CONTACT]: ['customerId', 'name', 'phone', 'owner', 'departmentId'], // 客户名称、姓名、手机号、负责人、部门
   [FormDesignKeyEnum.SEARCH_ADVANCED_PUBLIC]: ['name', 'poolName'], // 客户名称、公海名称
@@ -65,13 +61,6 @@ export default async function useSearchTable(props: SearchTableProps) {
       id: row.id,
       transitionType: row.transitionType,
       name: row.name,
-    });
-  }
-  function openNewPageCluePool(row: any) {
-    openNewPage(ClueRouteEnum.CLUE_MANAGEMENT_POOL, {
-      id: row.id,
-      name: row.name,
-      poolId: row.poolId,
     });
   }
 
@@ -114,7 +103,6 @@ export default async function useSearchTable(props: SearchTableProps) {
     [FormDesignKeyEnum.SEARCH_ADVANCED_CUSTOMER]: openNewPageCustomer,
     [FormDesignKeyEnum.SEARCH_ADVANCED_CONTACT]: openNewPageCustomerContact,
     [FormDesignKeyEnum.SEARCH_ADVANCED_PUBLIC]: openNewPageCustomerSea,
-    [FormDesignKeyEnum.SEARCH_ADVANCED_CLUE_POOL]: openNewPageCluePool,
     [FormDesignKeyEnum.SEARCH_ADVANCED_OPPORTUNITY]: openNewPageOpportunity,
   };
 
@@ -275,11 +263,8 @@ export default async function useSearchTable(props: SearchTableProps) {
       } as CrmDataTableColumn;
     });
 
-    // 除了线索池和公海，其他的有创建时间
-    const hasCreateTimeColumn = [
-      FormDesignKeyEnum.SEARCH_ADVANCED_CLUE_POOL,
-      FormDesignKeyEnum.SEARCH_ADVANCED_PUBLIC,
-    ].includes(props.searchTableKey.value)
+    // 除了公海，其他的有创建时间
+    const hasCreateTimeColumn = [FormDesignKeyEnum.SEARCH_ADVANCED_PUBLIC].includes(props.searchTableKey.value)
       ? []
       : [createTimeColumn];
 

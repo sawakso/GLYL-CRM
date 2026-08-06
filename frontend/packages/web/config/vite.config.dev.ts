@@ -6,10 +6,18 @@ import eslint from 'vite-plugin-eslint';
 // 注入本地/开发配置环境变量(先导入的配置优先级高)
 config({ path: ['.env.development.local', '.env.development'] });
 
+// Host 白名单：由环境变量 VITE_ALLOWED_HOSTS 控制（逗号分隔，支持 .域 子域名通配；填 * 表示允许所有）
+// - 本机开发：留空，回退到 ['localhost', '127.0.0.1']
+// - 公网穿透/局域网：在 .env.development.local 里配置，如 VITE_ALLOWED_HOSTS='crm.sawakso.com,.sawakso.com'
 const allowedHosts = (process.env.VITE_ALLOWED_HOSTS ?? '')
   .split(',')
   .map((host) => host.trim())
   .filter(Boolean);
+
+let serverAllowedHosts: string[] | true = ['localhost', '127.0.0.1'];
+if (allowedHosts.length > 0) {
+  serverAllowedHosts = allowedHosts.includes('*') ? true : allowedHosts;
+}
 
 export default mergeConfig(
   {
@@ -18,7 +26,7 @@ export default mergeConfig(
       host: true,
       port: 5174,
       strictPort: true,
-      allowedHosts: ['frp-bar.com', '.frp-bar.com', 'localhost', '127.0.0.1', 'all'], // 👈 直接写死
+      allowedHosts: serverAllowedHosts,
       open: true,
       fs: {
         strict: true,

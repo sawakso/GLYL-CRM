@@ -503,18 +503,6 @@
       groupList: [],
       enable: true,
     },
-    {
-      label: t('module.cluePool'),
-      key: ModuleConfigEnum.CLUE_POOL,
-      icon: 'iconicon_clue',
-      groupList: [
-        {
-          label: t('module.clue.cluePool'),
-          key: 'cluePoolSetting',
-        },
-      ],
-      enable: true,
-    },
   ];
 
   const moduleConfigList = computed<ModuleConfigItem[]>(() => {

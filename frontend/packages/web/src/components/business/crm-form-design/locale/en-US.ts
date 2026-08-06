@@ -267,4 +267,5 @@ export default {
   'crmFormDesign.subFormUnConfig': '{name} field linkage not configured!',
   'crmFormDesign.onlyInChina': 'Only in China',
   'crmFormDesign.allCountries': 'all countries',
+  'crmFormDesign.nameFieldNotDeletable': 'Name is a required field and cannot be deleted',
 };

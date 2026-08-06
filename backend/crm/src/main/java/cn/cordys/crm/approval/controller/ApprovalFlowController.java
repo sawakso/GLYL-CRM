@@ -92,6 +92,7 @@ public class ApprovalFlowController {
 
 
     @PostMapping("/webhook/test")
+    @RequiresPermissions(PermissionConstants.PROCESS_SETTING_UPDATE)
     @Operation(summary = "webhook-测试连接")
     public void verifyEmailConnection(@Validated @RequestBody WebHookConfig webHookConfig) {
         approvalFlowService.testConnection(webHookConfig);

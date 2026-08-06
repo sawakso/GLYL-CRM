@@ -2,7 +2,7 @@
   <CrmCard no-content-padding hide-footer>
     <div class="h-full p-[24px]">
       <div class="mb-[16px] flex items-center justify-between">
-        <n-button v-permission="['MARKETING_FORM:ADD']" type="primary" @click="handleAdd">
+        <n-button v-if="hasAnyPermission(['MARKETING_FORM:ADD'])" type="primary" @click="handleAdd">
           {{ t('marketingForm.createForm') }}
         </n-button>
         <n-input v-model:value="keyword" :placeholder="t('common.search')" clearable class="w-[240px]" />
@@ -26,11 +26,7 @@
 
     <QrCodeModal v-model:visible="qrVisible" :form-item="currentQrItem" />
 
-    <PreviewModal
-      v-model:visible="previewVisible"
-      :form-id="currentPreviewId"
-      :form-name="currentPreviewName"
-    />
+    <PreviewModal v-model:visible="previewVisible" :form-id="currentPreviewId" :form-name="currentPreviewName" />
   </CrmCard>
 </template>
 
@@ -49,6 +45,7 @@
 
   import { deleteMarketingForm, getMarketingFormList, updateMarketingFormStatus } from '@/api/modules';
   import useModal from '@/hooks/useModal';
+  import { useUserStore } from '@/store';
   import { hasAnyPermission } from '@/utils/permission';
 
   import type { DataTableColumns } from 'naive-ui';
@@ -56,6 +53,9 @@
   const { t } = useI18n();
   const Message = useMessage();
   const { openModal } = useModal();
+  // 市场表单设置仅管理员可编辑/查看修改入口
+  const userStore = useUserStore();
+  const isAdmin = computed(() => userStore.isAdmin);
 
   const loading = ref(false);
   const formList = ref<MarketingFormListItem[]>([]);
@@ -180,14 +180,18 @@
   }
 
   // 根据表单状态生成操作菜单 (DRAFT/CLOSED → 可启用, ACTIVE → 可关闭)
+  // 编辑/启停/删除按 MARKETING_FORM:UPDATE/DELETE 权限控制(市场部可用);
+  // 仅「市场设置」保留管理员可见
   function buildGroupList(row: MarketingFormListItem): ActionsItem[] {
     const items: ActionsItem[] = [
       { label: t('marketingForm.preview'), key: 'preview', permission: ['MARKETING_FORM:READ'] },
-      { label: t('common.edit'), key: 'edit', permission: ['MARKETING_FORM:UPDATE'] },
-      { label: t('marketingForm.settings'), key: 'settings', permission: ['MARKETING_FORM:UPDATE'] },
       { label: t('marketingForm.qrCode'), key: 'qr', permission: ['MARKETING_FORM:READ'] },
-      { label: '', key: '', type: 'divider' },
     ];
+    items.push({ label: t('common.edit'), key: 'edit', permission: ['MARKETING_FORM:UPDATE'] });
+    if (isAdmin.value) {
+      items.push({ label: t('marketingForm.settings'), key: 'settings', permission: ['MARKETING_FORM:UPDATE'] });
+    }
+    items.push({ label: '', key: '', type: 'divider' });
     if (row.status === 'ACTIVE') {
       items.push({ label: t('marketingForm.close'), key: 'close', permission: ['MARKETING_FORM:UPDATE'] });
     } else {
@@ -313,7 +317,7 @@
       width: 80,
       fixed: 'right',
       render(row) {
-        if (!hasAnyPermission(['MARKETING_FORM:UPDATE', 'MARKETING_FORM:DELETE', 'MARKETING_FORM:READ'])) {
+        if (!hasAnyPermission(['MARKETING_FORM:READ'])) {
           return null;
         }
         return h(CrmOperationButton, {

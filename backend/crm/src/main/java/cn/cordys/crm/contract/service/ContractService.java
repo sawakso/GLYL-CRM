@@ -662,8 +662,11 @@ public class ContractService implements ApprovalResourceHandler {
         if (Strings.CI.equals(request.getStage(), ContractStage.VOID.name()) || Strings.CI.equals(request.getStage(), ContractStage.ARCHIVED.name())) {
             String event = Strings.CI.equals(request.getStage(), ContractStage.VOID.name()) ?
                     NotificationConstants.Event.CONTRACT_VOID : NotificationConstants.Event.CONTRACT_ARCHIVED;
-            Customer customer = customerBaseMapper.selectByPrimaryKey(contract.getCustomerId());
-            sendNotice(contract, userId, orgId, event, customer.getName());
+            Customer customer = StringUtils.isNotBlank(contract.getCustomerId())
+                    ? customerBaseMapper.selectByPrimaryKey(contract.getCustomerId())
+                    : null;
+            // 客户可能为空(未关联客户或客户已删除), 用合同名作为通知占位, 避免作废/归档失败
+            sendNotice(contract, userId, orgId, event, customer != null ? customer.getName() : contract.getName());
         }
 
         final Map<String, String> modifiedVal = new HashMap<>(1);
@@ -739,7 +742,7 @@ public class ContractService implements ApprovalResourceHandler {
         LambdaQueryWrapper<ContractSnapshot> delWrapper = new LambdaQueryWrapper<>();
         delWrapper.eq(ContractSnapshot::getContractId, id);
         List<ContractSnapshot> contractSnapshots = snapshotBaseMapper.selectListByLambda(delWrapper);
-        ContractSnapshot first = contractSnapshots.getFirst();
+        ContractSnapshot first = contractSnapshots.isEmpty() ? null : contractSnapshots.getFirst();
         if (first != null) {
             ContractGetResponse response = JSON.parseObject(first.getContractValue(), ContractGetResponse.class);
             if (StringUtils.isNotBlank(stage)) {

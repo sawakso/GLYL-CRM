@@ -133,7 +133,7 @@
         if (hasData) {
           visible.value = false;
           router.push({
-            name: AppRouteEnum.CLUE_MANAGEMENT_POOL,
+            name: AppRouteEnum.CLUE_MANAGEMENT,
           });
         }
       },

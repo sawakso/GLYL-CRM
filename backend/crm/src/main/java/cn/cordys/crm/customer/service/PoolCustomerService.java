@@ -237,7 +237,7 @@ public class PoolCustomerService {
         var pickRuleWrapper = new LambdaQueryWrapper<CustomerPoolPickRule>();
         pickRuleWrapper.eq(CustomerPoolPickRule::getPoolId, request.getPoolId());
         List<CustomerPoolPickRule> customerPoolPickRules = pickRuleMapper.selectListByLambda(pickRuleWrapper);
-        CustomerPoolPickRule pickRule = customerPoolPickRules.getFirst();
+        CustomerPoolPickRule pickRule = customerPoolPickRules.isEmpty() ? null : customerPoolPickRules.getFirst();
         boolean poolAdmin = userExtendService.isPoolAdmin(JSON.parseArray(pool.getOwnerId(), String.class), currentUser, currentOrgId);
         if (!poolAdmin) {
             validateDailyPickNum(1, currentUser, pickRule);
@@ -285,7 +285,7 @@ public class PoolCustomerService {
         var pickRuleWrapper = new LambdaQueryWrapper<CustomerPoolPickRule>();
         pickRuleWrapper.eq(CustomerPoolPickRule::getPoolId, request.getPoolId());
         List<CustomerPoolPickRule> customerPoolPickRules = pickRuleMapper.selectListByLambda(pickRuleWrapper);
-        CustomerPoolPickRule pickRule = customerPoolPickRules.getFirst();
+        CustomerPoolPickRule pickRule = customerPoolPickRules.isEmpty() ? null : customerPoolPickRules.getFirst();
         boolean poolAdmin = userExtendService.isPoolAdmin(JSON.parseArray(pool.getOwnerId(), String.class), currentUser, currentOrgId);
         if (!poolAdmin) {
             validateDailyPickNum(request.getBatchIds().size(), currentUser, pickRule);
@@ -361,6 +361,10 @@ public class PoolCustomerService {
      * @param pickRule     领取规则
      */
     public void validateDailyPickNum(int pickingCount, String ownUserId, CustomerPoolPickRule pickRule) {
+        if (pickRule == null) {
+            // 未配置领取规则时，不做每日领取数量限制
+            return;
+        }
         if (pickRule.getLimitOnNumber()) {
             var customerWrapper = new LambdaQueryWrapper<Customer>();
             customerWrapper

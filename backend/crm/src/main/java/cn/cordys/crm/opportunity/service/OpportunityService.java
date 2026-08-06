@@ -288,6 +288,9 @@ public class OpportunityService {
     public Opportunity add(OpportunityAddRequest request, String operatorId, String orgId) {
         productService.checkProductList(request.getProducts());
         List<StageConfigResponse> stageConfigList = extOpportunityStageConfigMapper.getStageConfigList(orgId);
+        if (stageConfigList.isEmpty()) {
+            throw new GenericException(Translator.get("opportunity_stage_not_exist"));
+        }
         Long nextPos = getNextPos(orgId, stageConfigList.getFirst().getId());
         Opportunity opportunity = new Opportunity();
         String id = IDGenerator.nextStr();
@@ -762,6 +765,9 @@ public class OpportunityService {
     public ImportResponse realImport(MultipartFile file, ImportRequest request, String currentOrg, String currentUser) {
         try {
             List<StageConfigResponse> stageConfigList = extOpportunityStageConfigMapper.getStageConfigList(currentOrg);
+            if (stageConfigList.isEmpty()) {
+                throw new GenericException(Translator.get("opportunity_stage_not_exist"));
+            }
 
             List<BaseField> fields = moduleFormService.getAllFields(FormKey.OPPORTUNITY.getKey(), currentOrg);
             long nextPos = getNextPos(currentOrg, stageConfigList.getFirst().getId());

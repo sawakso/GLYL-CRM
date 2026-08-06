@@ -1,50 +1,53 @@
 <template>
   <n-scrollbar class="flex flex-col p-[16px]">
-    <div class="crm-form-design-field-title">{{ t('crmFormDesign.basicField') }}</div>
-    <VueDraggable
-      v-model="basicFields"
-      :animation="150"
-      ghost-class="crm-form-design--composition-item-ghost"
-      :group="{ name: 'crmFormDesign', pull: 'clone', put: false }"
-      :clone="clone"
-      :sort="false"
-      class="crm-form-design-field-wrapper mb-[24px]"
-      @move="handleMove"
-    >
-      <div
-        v-for="field of basicFields"
-        :key="field.type"
-        class="crm-form-design-field-item"
-        draggable="true"
-        @click="() => handleFieldClick(field)"
+    <!-- 市场表单仅允许使用意向线索字段, 隐藏通用基础/高级字段 -->
+    <template v-if="!isMarketingForm">
+      <div class="crm-form-design-field-title">{{ t('crmFormDesign.basicField') }}</div>
+      <VueDraggable
+        v-model="basicFields"
+        :animation="150"
+        ghost-class="crm-form-design--composition-item-ghost"
+        :group="{ name: 'crmFormDesign', pull: 'clone', put: false }"
+        :clone="clone"
+        :sort="false"
+        class="crm-form-design-field-wrapper mb-[24px]"
+        @move="handleMove"
       >
-        <CrmIcon :type="field.icon" />
-        <div>{{ t(field.name) }}</div>
-      </div>
-    </VueDraggable>
-    <div class="crm-form-design-field-title">{{ t('crmFormDesign.advancedField') }}</div>
-    <VueDraggable
-      v-model="realAdvancedFields"
-      :animation="150"
-      ghost-class="crm-form-design--composition-item-ghost"
-      :group="{ name: 'crmFormDesign', pull: 'clone', put: false }"
-      :clone="clone"
-      :sort="false"
-      class="crm-form-design-field-wrapper"
-      @move="handleMove"
-    >
-      <div
-        v-for="field of realAdvancedFields"
-        :key="field.type"
-        class="crm-form-design-field-item"
-        :class="getFieldDisable(field) ? 'crm-form-design-field-item--disabled' : ''"
-        :draggable="!getFieldDisable(field)"
-        @click="() => handleFieldClick(field)"
+        <div
+          v-for="field of basicFields"
+          :key="field.type"
+          class="crm-form-design-field-item"
+          draggable="true"
+          @click="() => handleFieldClick(field)"
+        >
+          <CrmIcon :type="field.icon" />
+          <div>{{ t(field.name) }}</div>
+        </div>
+      </VueDraggable>
+      <div class="crm-form-design-field-title">{{ t('crmFormDesign.advancedField') }}</div>
+      <VueDraggable
+        v-model="realAdvancedFields"
+        :animation="150"
+        ghost-class="crm-form-design--composition-item-ghost"
+        :group="{ name: 'crmFormDesign', pull: 'clone', put: false }"
+        :clone="clone"
+        :sort="false"
+        class="crm-form-design-field-wrapper"
+        @move="handleMove"
       >
-        <CrmIcon :type="field.icon" />
-        <div>{{ t(field.name) }}</div>
-      </div>
-    </VueDraggable>
+        <div
+          v-for="field of realAdvancedFields"
+          :key="field.type"
+          class="crm-form-design-field-item"
+          :class="getFieldDisable(field) ? 'crm-form-design-field-item--disabled' : ''"
+          :draggable="!getFieldDisable(field)"
+          @click="() => handleFieldClick(field)"
+        >
+          <CrmIcon :type="field.icon" />
+          <div>{{ t(field.name) }}</div>
+        </div>
+      </VueDraggable>
+    </template>
 
     <!-- 引用 CRM 业务字段(仅市场表单设计器, 从线索对象引用现成字段) -->
     <template v-if="showRefGroup">
@@ -86,6 +89,7 @@
   import CrmIcon from '@/components/pure/crm-icon-font/index.vue';
   import { advancedFields, basicFields } from '@/components/business/crm-form-create/config';
   import { FormCreateField } from '@/components/business/crm-form-create/types';
+
   import { getClueFormConfig } from '@/api/modules';
 
   const props = defineProps<{
@@ -98,6 +102,9 @@
 
   const { t } = useI18n();
 
+  // 市场表单仅允许使用意向线索字段, 隐藏通用基础/高级字段
+  const isMarketingForm = computed(() => props.formKey === FormDesignKeyEnum.MARKETING_FORM);
+
   // 引用 CRM 业务字段分组: 仅市场表单设计器显示, 拉取线索对象字段 schema 作为可拖模板
   const showRefGroup = computed(() => props.formKey === FormDesignKeyEnum.MARKETING_FORM);
   const refClueFields = ref<FormCreateField[]>([]);
@@ -105,8 +112,9 @@
     getClueFormConfig()
       .then((res: any) => {
         // 放开业务Key限制: 线索对象全部字段均可引用 (fieldId + refFieldId 提供映射, 不依赖 businessKey 注册表)
+        // 过滤掉已停用(readable=false)的字段, 市场表单只能关联可用的意向线索字段
         refClueFields.value = (res?.fields || [])
-          .filter((f: FormCreateField) => f.id && f.type !== FieldTypeEnum.DIVIDER)
+          .filter((f: FormCreateField) => f.id && f.type !== FieldTypeEnum.DIVIDER && (f as any).readable !== false)
           .map((f: FormCreateField) => ({ ...cloneDeep(f), isRef: true }));
       })
       .catch(() => {
@@ -279,7 +287,7 @@
       border: 1px dashed var(--primary-1);
       color: var(--primary-1);
       &:hover {
-        background-color: rgba(var(--primary-1-rgb), 0.1);
+        background-color: rgb(var(--primary-1-rgb) 0.1);
       }
     }
     .crm-form-design-field-item--disabled {

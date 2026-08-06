@@ -118,20 +118,6 @@
                 <globalSearchResult :title="currentTitle" :total="total" @init-total="initTotal" />
               </template>
             </clueTable>
-            <cluePoolTable
-              v-else-if="activeTab === FormDesignKeyEnum.SEARCH_ADVANCED_CLUE_POOL"
-              ref="cluePoolTableRef"
-              readonly
-              hidden-pool-select
-              hidden-advance-filter
-              is-limit-show-detail
-              :form-key="FormDesignKeyEnum.SEARCH_ADVANCED_CLUE_POOL"
-              @init="setFilterConfigList"
-            >
-              <template #searchTableTotal="{ total }">
-                <globalSearchResult :title="currentTitle" :total="total" @init-total="initTotal" />
-              </template>
-            </cluePoolTable>
           </Suspense>
         </CrmCard>
       </div>
@@ -162,7 +148,6 @@
   import ContactTable from '@/components/business/crm-form-create-table/contactTable.vue';
   import globalSearchResult from './globalSearchResult.vue';
   import clueTable from '@/views/clueManagement/clue/components/clueTable.vue';
-  import cluePoolTable from '@/views/clueManagement/cluePool/components/cluePoolTable.vue';
   import customerOverviewDrawer from '@/views/customer/components/customerOverviewDrawer.vue';
   import customerTable from '@/views/customer/components/customerTable.vue';
   import openSeaTable from '@/views/customer/components/openSeaTable.vue';
@@ -227,7 +212,6 @@
   const contactTableRef = ref<InstanceType<typeof ContactTable>>();
   const openSeaTableRef = ref<InstanceType<typeof openSeaTable>>();
   const clueTableRef = ref<InstanceType<typeof clueTable>>();
-  const cluePoolTableRef = ref<InstanceType<typeof cluePoolTable>>();
 
   function loadList(filter: FilterResult) {
     switch (activeTab.value) {
@@ -245,9 +229,6 @@
         break;
       case FormDesignKeyEnum.SEARCH_ADVANCED_CLUE:
         clueTableRef.value?.handleAdvanceFilter?.(filter, isAdvancedSearchMode.value, globalKeyword.value);
-        break;
-      case FormDesignKeyEnum.SEARCH_ADVANCED_CLUE_POOL:
-        cluePoolTableRef.value?.handleAdvanceFilter?.(filter, isAdvancedSearchMode.value, globalKeyword.value);
         break;
       default:
         break;
@@ -270,9 +251,6 @@
         break;
       case FormDesignKeyEnum.SEARCH_ADVANCED_CLUE:
         clueTableRef.value?.handleSearchData?.(globalKeyword.value);
-        break;
-      case FormDesignKeyEnum.SEARCH_ADVANCED_CLUE_POOL:
-        cluePoolTableRef.value?.handleSearchData?.(globalKeyword.value);
         break;
       default:
         break;

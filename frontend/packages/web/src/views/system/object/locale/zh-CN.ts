@@ -13,8 +13,13 @@ export default {
   'objectSetting.renamePlaceholder': '输入自定义名称，留空恢复默认',
   'objectSetting.fieldManage': '字段管理',
   'objectSetting.addField': '新增字段',
+  'objectSetting.editField': '编辑字段',
   'objectSetting.fieldName': '字段名称',
   'objectSetting.fieldType': '字段类型',
   'objectSetting.internalKey': '内部Key',
+  'objectSetting.businessKey': '业务Key',
+  'objectSetting.disableBeforeDelete': '请先停用该字段再删除',
+  'objectSetting.deleteFieldConfirm': '确定删除字段「{name}」吗？删除后不可恢复',
+  'objectSetting.nameFieldNotDeletable': '姓名是必填字段，不允许删除',
   'menu.settings.objectSetting': '对象管理',
 };

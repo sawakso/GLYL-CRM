@@ -11,8 +11,8 @@ export default function useSearchFormConfig() {
   const customerConfig = [FormDesignKeyEnum.SEARCH_ADVANCED_CUSTOMER, FormDesignKeyEnum.SEARCH_ADVANCED_PUBLIC];
   // 联系人表单
   const customerContactConfig = [FormDesignKeyEnum.SEARCH_ADVANCED_CONTACT];
-  // 线索线索池共用表单
-  const clueConfig = [FormDesignKeyEnum.SEARCH_ADVANCED_CLUE_POOL, FormDesignKeyEnum.SEARCH_ADVANCED_CLUE];
+  // 线索表单
+  const clueConfig = [FormDesignKeyEnum.SEARCH_ADVANCED_CLUE];
   // 商机表单
   const opportunityConfig = [FormDesignKeyEnum.SEARCH_ADVANCED_OPPORTUNITY];
 
@@ -43,7 +43,7 @@ export default function useSearchFormConfig() {
     [FormDesignKeyEnum.SEARCH_ADVANCED_OPPORTUNITY]: ['OPPORTUNITY_MANAGEMENT:READ'],
     [FormDesignKeyEnum.SEARCH_ADVANCED_CUSTOMER]: ['CUSTOMER_MANAGEMENT:READ', 'CUSTOMER_MANAGEMENT_POOL:READ'],
     [FormDesignKeyEnum.SEARCH_ADVANCED_CONTACT]: ['CUSTOMER_MANAGEMENT_CONTACT:READ'],
-    [FormDesignKeyEnum.SEARCH_ADVANCED_CLUE]: ['CLUE_MANAGEMENT:READ', 'CLUE_MANAGEMENT_POOL:READ'],
+    [FormDesignKeyEnum.SEARCH_ADVANCED_CLUE]: ['CLUE_MANAGEMENT:READ'],
   };
 
   const { getFilterListConfig } = useFormCreateAdvanceFilter();

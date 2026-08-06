@@ -251,4 +251,5 @@ export default {
   'crmFormDesign.subFormUnConfig': '{name} 字段联动未配置！',
   'crmFormDesign.onlyInChina': '仅中国',
   'crmFormDesign.allCountries': '全部国家',
+  'crmFormDesign.nameFieldNotDeletable': '姓名是必填字段，不允许删除',
 };

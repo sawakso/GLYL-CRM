@@ -23,7 +23,8 @@
                c.changed_to_mql_time, c.expire_time, c.conversion_probability, c.remaining_time,
                c.is_overtime, c.is_duplicated, c.biz_reg_name, c.back_reason, c.close_reason,
                c.completed_result, c.extend_days, c.extend_reason, c.marketing_event_id,
-               c.collected_to, c.phone_number_attribution, c.enterprise_wechat_user_id
+               c.collected_to, c.phone_number_attribution, c.enterprise_wechat_user_id,
+               c.approval_status, c.approved
         from `clue` c
 
         <include refid="fieldConditionJoin">
@@ -43,7 +44,7 @@
         </include>
 
         <if test="dataPermission != null and dataPermission.deptIds.size() > 0">
-            join sys_organization_user sou on c.owner = sou.user_id
+            left join sys_organization_user sou on c.owner = sou.user_id
             and (
                 sou.department_id in
                 <foreach collection="dataPermission.deptIds" item="deptId" open="(" close=")" separator=",">
@@ -56,16 +57,16 @@
         </if>
 
         where c.organization_id = #{orgId}
-        <if test="request.poolId == null">
-            and c.in_shared_pool is false
-        </if>
-
         <if test="request.poolId != null">
             and c.in_shared_pool is true and c.pool_id = #{request.poolId}
         </if>
 
         <if test="dataPermission != null and dataPermission.self">
           and c.owner = #{userId}
+        </if>
+
+        <if test="dataPermission != null and dataPermission.deptIds.size() > 0">
+            and (sou.user_id is not null or c.owner is null)
         </if>
 
         <if test="!source and request.keyword != null and request.keyword != ''">
@@ -112,7 +113,7 @@
         from clue c
 
         <if test="dataPermission != null and dataPermission.deptIds.size() > 0">
-            join sys_organization_user sou on c.owner = sou.user_id
+            left join sys_organization_user sou on c.owner = sou.user_id
             and (
             sou.department_id in
             <foreach collection="dataPermission.deptIds" item="deptId" open="(" close=")" separator=",">
@@ -154,16 +155,16 @@
 
         where c.organization_id = #{orgId}
 
-        <if test="request.poolId == null">
-            and c.in_shared_pool is false
-        </if>
-
         <if test="request.poolId != null">
             and c.in_shared_pool is true and c.pool_id = #{request.poolId}
         </if>
 
         <if test="dataPermission != null and dataPermission.self">
             and c.owner = #{userId}
+        </if>
+
+        <if test="dataPermission != null and dataPermission.deptIds.size() > 0">
+            and (sou.user_id is not null or c.owner is null)
         </if>
 
         <if test="request.viewId == 'CUSTOMER_TRANSITION'">
@@ -533,7 +534,8 @@
                c.changed_to_mql_time, c.expire_time, c.conversion_probability, c.remaining_time,
                c.is_overtime, c.is_duplicated, c.biz_reg_name, c.back_reason, c.close_reason,
                c.completed_result, c.extend_days, c.extend_reason, c.marketing_event_id,
-               c.collected_to, c.phone_number_attribution, c.enterprise_wechat_user_id
+               c.collected_to, c.phone_number_attribution, c.enterprise_wechat_user_id,
+               c.approval_status, c.approved
         from `clue` c
         where id in
         <foreach collection="ids" item="id" open="(" close=")" separator=",">
@@ -581,7 +583,6 @@
         where c.organization_id = #{request.orgId}
           and (c.transition_id is null or c.transition_id= '')
             <if test="request.staticRequest.userField != 'CREATE_USER'">
-                and c.in_shared_pool is false
             </if>
         <if test="unfollowed">
             and fur.id is null
@@ -668,7 +669,6 @@
         </include>
         where c.organization_id = #{orgId}
           and (c.transition_id IS NULL OR  c.transition_id = '')
-          and c.in_shared_pool is false
         <include refid="combine">
             <property name="combineSearch" value="request.combineSearch"/>
         </include>
@@ -686,7 +686,6 @@
         </include>
         where c.organization_id = #{orgId}
           and (c.transition_id IS NULL OR  c.transition_id = '')
-          and c.in_shared_pool is false
         <include refid="combine">
             <property name="combineSearch" value="request.combineSearch"/>
         </include>

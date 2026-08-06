@@ -17,6 +17,7 @@ import cn.cordys.crm.clue.domain.CluePool;
 import cn.cordys.crm.clue.constants.ClueStatus;
 import cn.cordys.crm.clue.service.ClueFieldService;
 import cn.cordys.crm.clue.service.CluePoolAssignRuleService;
+import cn.cordys.crm.clue.service.CluePoolService;
 import cn.cordys.crm.marketingform.domain.MarketingForm;
 import cn.cordys.crm.marketingform.domain.MarketingFormSubmission;
 import cn.cordys.crm.marketingform.dto.request.MarketingFormSubmitRequest;
@@ -78,6 +79,8 @@ public class MarketingLeadBridgeService {
     private BaseMapper<ClueField> clueFieldMapper;
     @Resource
     private CluePoolAssignRuleService cluePoolAssignRuleService;
+    @Resource
+    private CluePoolService cluePoolService;
     @Resource
     private LogService logService;
     @Resource
@@ -380,7 +383,7 @@ public class MarketingLeadBridgeService {
                                 Map<String, Object> formValues, String orgId, String operatorId,
                                 MarketingFormSubmitRequest request, HttpServletRequest httpRequest,
                                 Identity identity, String duplicateClueId) {
-        Clue clue = buildClue(form, fieldMapping, formValues, orgId, operatorId);
+        Clue clue = buildClue(form, pool.getId(), fieldMapping, formValues, orgId, operatorId);
         if (StringUtils.isNotBlank(duplicateClueId)) {
             clue.setIsDuplicated(true);
             clue.setDuplicateClueId(duplicateClueId);
@@ -411,11 +414,12 @@ public class MarketingLeadBridgeService {
         recordSubmission(form.getId(), clue.getId(), orgId, httpRequest, request.getDeviceId(), identity,
                 StringUtils.isNotBlank(duplicateClueId) ? "MARK" : "CREATE");
 
-        // 触发线索池→销售自动分配 (失败不阻断, 线索留在池里)
+        // 按线索池分配规则仅为线索设置负责人(不放入池, 线索始终显示在「线索」列表)。
+        // 未命中规则时线索保持无负责人但仍是普通线索, 对管理员/角色可见。
         try {
-            cluePoolAssignRuleService.matchAndAssign(clue.getId(), pool.getId(), orgId, operatorId);
+            cluePoolAssignRuleService.matchAndAssignOwner(clue.getId(), pool.getId(), orgId, operatorId);
         } catch (Exception e) {
-            log.warn("线索池自动分配失败, 线索 {} 留在池 {} 中: {}", clue.getId(), pool.getId(), e.getMessage());
+            log.warn("线索负责人自动分配失败, 线索 {} 未设置负责人: {}", clue.getId(), e.getMessage());
         }
 
         return clue.getId();
@@ -465,7 +469,12 @@ public class MarketingLeadBridgeService {
     // ==================== 原逻辑保留 ====================
 
     private CluePool validateTargetPool(String poolId, String orgId) {
+        // 未配置目标池 → 默认进组织默认线索池（is_default，兼容名含「新进」的池）
         if (StringUtils.isBlank(poolId)) {
+            CluePool defaultPool = cluePoolService.getDefaultPool(orgId);
+            if (defaultPool != null) {
+                return defaultPool;
+            }
             throw new GenericException(Translator.get("marketing.form.target.pool.invalid"));
         }
         CluePool pool = cluePoolMapper.selectByPrimaryKey(poolId);
@@ -503,14 +512,15 @@ public class MarketingLeadBridgeService {
      * 构建线索。按 field_mapping 把表单值映射到 Clue 字段;
      * 未映射的值不丢失 (已在 saveModuleField 存进 clue_field EAV)。
      */
-    private Clue buildClue(MarketingForm form, Map<String, String> fieldMapping,
+    private Clue buildClue(MarketingForm form, String poolId, Map<String, String> fieldMapping,
                            Map<String, Object> formValues, String orgId, String operatorId) {
         Clue clue = new Clue();
         clue.setId(IDGenerator.nextStr());
         clue.setOrganizationId(orgId);
         clue.setStage(ClueStatus.NEW.name());
-        clue.setInSharedPool(true);
-        clue.setPoolId(form.getTargetPoolId());
+        // 市场表单回流线索为普通线索(不放入线索池), 始终显示在「线索」列表。
+        // 线索池仅作为分配规则使用, 通过 matchAndAssignOwner 为其设置负责人。
+        clue.setInSharedPool(false);
         clue.setCreateTime(System.currentTimeMillis());
         clue.setUpdateTime(System.currentTimeMillis());
         clue.setCollectionTime(System.currentTimeMillis());
@@ -524,7 +534,6 @@ public class MarketingLeadBridgeService {
         clue.setLeadsStage("新线索");           // 线索进度 (列表显示)
         clue.setBizStatus("新建");              // 线索状态
         clue.setLifeStatus("活跃");             // 生命状态
-        clue.setPoolEntryTime(System.currentTimeMillis()); // 领取/分配时间
 
         applyFormToClue(clue, form, fieldMapping, formValues);
 

@@ -14,7 +14,6 @@ export type SearchTableKey =
   | FormDesignKeyEnum.SEARCH_ADVANCED_CUSTOMER
   | FormDesignKeyEnum.SEARCH_ADVANCED_CONTACT
   | FormDesignKeyEnum.SEARCH_ADVANCED_PUBLIC
-  | FormDesignKeyEnum.SEARCH_ADVANCED_CLUE_POOL
   | FormDesignKeyEnum.SEARCH_ADVANCED_OPPORTUNITY;
 
 export interface ScopedOptions {
@@ -30,12 +29,6 @@ export const scopedOptions = [
     value: FormDesignKeyEnum.SEARCH_ADVANCED_CLUE,
     moduleKey: ModuleConfigEnum.CLUE_MANAGEMENT,
     permission: ['CLUE_MANAGEMENT:READ'],
-  },
-  {
-    label: t('menu.cluePool'),
-    value: FormDesignKeyEnum.SEARCH_ADVANCED_CLUE_POOL,
-    moduleKey: ModuleConfigEnum.CLUE_MANAGEMENT,
-    permission: ['CLUE_MANAGEMENT_POOL:READ'],
   },
   {
     label: t('common.customer'),

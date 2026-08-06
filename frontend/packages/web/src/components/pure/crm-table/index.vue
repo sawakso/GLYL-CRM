@@ -561,6 +561,10 @@
   async function initPaginationType(load: boolean = false) {
     if (attrs.showSetting) {
       paginationType.value = await tableStore.getTablePaginationType(realTableKey.value);
+      // 线索列表改为普通分页(页码式), 避免滚动无限加载在数据量大时导致卡顿/全量渲染
+      if (realTableKey.value === TableKeyEnum.CLUE) {
+        paginationType.value = 'pagePagination';
+      }
       if (load) {
         // 切换分页类型时，重置页码到1
         scrollTo({

@@ -129,6 +129,7 @@ export default {
   'module.clue.operatorNotEquals': '不等于',
   'module.clue.operatorContains': '包含',
   'module.clue.matchValue': '值',
+  'module.clue.matchValueMulti': '值(多个用逗号分隔)',
   'module.clue.triggerAssign': '手动触发分配',
   'module.clue.triggerAssignSuccess': '成功分配{count}条线索',
   'module.clue.collaboratorAdmin': '协同管理员',

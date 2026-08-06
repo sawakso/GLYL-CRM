@@ -158,11 +158,6 @@ export const pathMap: PathMapItem[] = [
         route: AppRouteEnum.CLUE_MANAGEMENT_CLUE,
         locale: 'menu.clue',
       },
-      {
-        key: 'CLUE_MANAGEMENT_POOL',
-        route: AppRouteEnum.CLUE_MANAGEMENT_POOL,
-        locale: 'module.cluePool',
-      },
     ],
   },
   {

@@ -147,6 +147,12 @@ public class ClueListResponse {
     @Schema(description = "企业微信UserId") private String enterpriseWechatUserId;
     /*------ end: 纷享销客扩展字段 (ext_ver 1.11.0) ------*/
 
+    @Schema(description = "审批状态")
+    private String approvalStatus;
+
+    @Schema(description = "是否已审批通过")
+    private Boolean approved;
+
     @Schema(description = "自定义字段集合")
     private List<BaseModuleFieldValue> moduleFields;
 }

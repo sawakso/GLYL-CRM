@@ -11,13 +11,6 @@ export default function useOpenDetailPage() {
       name: row.clueName,
     });
   }
-  function openNewPageCluePool(row: any) {
-    openNewPage(ClueRouteEnum.CLUE_MANAGEMENT_POOL, {
-      id: row.clueId,
-      name: row.clueName,
-      poolId: row.poolId,
-    });
-  }
 
   function openNewPageOpportunity(row: any) {
     openNewPage(OpportunityRouteEnum.OPPORTUNITY, {
@@ -41,11 +34,7 @@ export default function useOpenDetailPage() {
 
   function goDetail(item: any) {
     if (item.resourceType === 'CLUE') {
-      if (item.poolId) {
-        openNewPageCluePool(item);
-      } else {
-        openNewPageClue(item);
-      }
+      openNewPageClue(item);
     } else if (item.resourceType === 'CUSTOMER') {
       if (item.poolId) {
         openNewPageCustomerSea(item);

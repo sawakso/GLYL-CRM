@@ -22,7 +22,6 @@ export default {
     'menu.duplicateCheck': 'Duplicate Check',
     'menu.opportunity': 'Opportunity',
     'menu.clue': 'Lead',
-    'menu.cluePool': 'Lead Pool',
     'menu.customer': 'Account',
     'menu.openSea': 'Open Sea',
     'menu.contact': 'Contact',

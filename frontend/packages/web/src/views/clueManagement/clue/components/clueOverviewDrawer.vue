@@ -77,11 +77,7 @@
     @success="emit('remove')"
     @finish="show = false"
   />
-  <StatusTransitionModal
-    v-model:show="showStatusTransitionModal"
-    :clue-id="sourceId"
-    @success="emit('refresh')"
-  />
+  <StatusTransitionModal v-model:show="showStatusTransitionModal" :clue-id="sourceId" @success="emit('refresh')" />
 </template>
 
 <script setup lang="ts">
@@ -106,7 +102,7 @@
   import convertClueModal from './convertClueModal.vue';
   import StatusTransitionModal from './statusTransitionModal.vue';
 
-  import { batchTransferClue, deleteClue, getClueHeaderList } from '@/api/modules';
+  import { batchTransferClue, deleteClue, getClueHeaderList, reviewResource } from '@/api/modules';
   import { defaultTransferForm } from '@/config/opportunity';
   import useModal from '@/hooks/useModal';
   import { hasAnyPermission } from '@/utils/permission';
@@ -221,6 +217,22 @@
     showStatusTransitionModal.value = true;
   }
 
+  // 提审
+  const reviewLoading = ref(false);
+  async function handleSubmitReview() {
+    reviewLoading.value = true;
+    try {
+      await reviewResource({ resourceId: sourceId.value, formKey: FormDesignKeyEnum.CLUE });
+      Message.success(t('common.reviewSuccess'));
+      show.value = false;
+      emit('refresh');
+    } catch (e) {
+      console.error(e);
+    } finally {
+      reviewLoading.value = false;
+    }
+  }
+
   function handleSelect(key: string) {
     switch (key) {
       case 'pop-transfer':
@@ -237,6 +249,9 @@
         break;
       case 'statusTransition':
         handleStatusTransition();
+        break;
+      case 'pop-submitReview':
+        handleSubmitReview();
         break;
       default:
         break;
@@ -277,6 +292,20 @@
         ghost: true,
         class: 'n-btn-outline-primary',
         permission: ['CLUE_MANAGEMENT:UPDATE'],
+      },
+      {
+        label: t('common.review'),
+        key: 'submitReview',
+        text: false,
+        ghost: true,
+        class: 'n-btn-outline-primary',
+        permission: ['CLUE_MANAGEMENT:UPDATE'],
+        popConfirmProps: {
+          loading: reviewLoading.value,
+          title: t('common.review'),
+          positiveText: t('common.confirm'),
+          iconType: 'primary',
+        },
       },
       {
         label: t('clue.moveIntoCluePool'),

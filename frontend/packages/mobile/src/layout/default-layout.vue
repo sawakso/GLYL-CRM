@@ -108,7 +108,7 @@
       name: AppRouteEnum.CLUE,
       icon: 'iconicon_clue',
       text: t('menu.clue'),
-      permission: ['CLUE_MANAGEMENT:READ', 'CLUE_MANAGEMENT_POOL:READ'],
+      permission: ['CLUE_MANAGEMENT:READ'],
       moduleKey: ModuleConfigEnum.CLUE_MANAGEMENT,
     },
     {

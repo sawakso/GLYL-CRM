@@ -112,9 +112,7 @@ public class LicenseService {
             }
         }
 
-        if (isValid) {
-            licenseDTO.setStatus(LicenseStatus.INVALID.getName());
-        }
+        licenseDTO.setStatus(LicenseStatus.INVALID.getName());
 
         return licenseDTO;
     }

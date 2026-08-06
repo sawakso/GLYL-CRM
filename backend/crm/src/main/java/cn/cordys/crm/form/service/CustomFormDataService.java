@@ -287,7 +287,8 @@ public class CustomFormDataService {
         CustomFormData updateData = new CustomFormData();
         updateData.setId(request.getId());
         updateData.setName(request.getName());
-        updateData.setOwner(request.getOwner());
+        // 负责人为空时保留原负责人，避免误清空
+        updateData.setOwner(StringUtils.isNotBlank(request.getOwner()) ? request.getOwner() : originData.getOwner());
         updateData.setUpdateTime(System.currentTimeMillis());
         updateData.setUpdateUser(userId);
         customFormDataMapper.update(updateData);
@@ -399,6 +400,10 @@ public class CustomFormDataService {
 
     CustomFormRoleKey getDataScope(String formId, String userId, boolean checkEnable) {
         CustomForm customForm = customFormMapper.selectByPrimaryKey(formId);
+        if (customForm == null) {
+            // 表单不存在（已被删除或伪造 formId），拒绝访问而非 NPE
+            throw new GenericException(CrmHttpResultCode.NOT_FOUND);
+        }
         if (customFormService.isFormAdminUser(formId, userId)) {
             // 管理员管理所有数据
             return CustomFormRoleKey.MANAGE_ALL;

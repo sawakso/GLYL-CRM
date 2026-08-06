@@ -394,6 +394,9 @@ public class CustomerContactService {
 
     private void changeEnable(String id, boolean enable, String reason) {
         CustomerContact originCustomerContact = customerContactMapper.selectByPrimaryKey(id);
+        if (originCustomerContact == null) {
+            return;
+        }
 
         CustomerContact customerContact = new CustomerContact();
         customerContact.setEnable(enable);

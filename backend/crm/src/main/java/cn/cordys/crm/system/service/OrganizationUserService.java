@@ -128,9 +128,14 @@ public class OrganizationUserService {
      */
     public List<UserPageResponse> list(UserPageRequest request) {
         String orderByClause = buildOrderByFieldClause(request.getDepartmentIds());
-        request.setDepartmentIds(request.getDepartmentIds().stream().filter(id -> id.chars().allMatch(Character::isDigit)).toList());
+        List<String> deptIds = request.getDepartmentIds();
+        if (deptIds == null) {
+            deptIds = new ArrayList<>();
+        }
+        List<String> validDeptIds = deptIds.stream().filter(id -> id.chars().allMatch(Character::isDigit)).toList();
+        request.setDepartmentIds(validDeptIds);
         List<UserPageResponse> list = extOrganizationUserMapper.list(request, orderByClause);
-        handleData(list, request.getDepartmentIds().getFirst());
+        handleData(list, validDeptIds.isEmpty() ? null : validDeptIds.getFirst());
         return list;
     }
 

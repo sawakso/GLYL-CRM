@@ -13,8 +13,13 @@ export default {
   'objectSetting.renamePlaceholder': 'Enter custom name, leave empty to restore default',
   'objectSetting.fieldManage': 'Field Management',
   'objectSetting.addField': 'Add Field',
+  'objectSetting.editField': 'Edit Field',
   'objectSetting.fieldName': 'Field Name',
   'objectSetting.fieldType': 'Field Type',
   'objectSetting.internalKey': 'Internal Key',
+  'objectSetting.businessKey': 'Business Key',
+  'objectSetting.disableBeforeDelete': 'Please disable the field before deleting',
+  'objectSetting.deleteFieldConfirm': 'Are you sure to delete field "{name}"? This cannot be undone',
+  'objectSetting.nameFieldNotDeletable': 'Name is a required field and cannot be deleted',
   'menu.settings.objectSetting': 'Object Management',
 };

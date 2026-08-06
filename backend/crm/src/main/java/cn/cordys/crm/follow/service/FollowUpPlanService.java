@@ -483,6 +483,9 @@ public class FollowUpPlanService extends BaseFollowUpService {
 
     public void checkUpdatePermission(String id, String userId) {
         FollowUpPlan followUpPlan = followUpPlanMapper.selectByPrimaryKey(id);
+        if (followUpPlan == null) {
+            throw new GenericException(Translator.get("plan_not_found"));
+        }
         if (Strings.CS.equals(userId, InternalUser.ADMIN.toString()) || Strings.CS.equals(followUpPlan.getOwner(), userId)) {
             return;
         }

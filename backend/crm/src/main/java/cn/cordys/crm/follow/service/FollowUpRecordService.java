@@ -568,6 +568,9 @@ public class FollowUpRecordService extends BaseFollowUpService {
 
     public void checkUpdatePermission(String id, String userId) {
         FollowUpRecord followUpRecord = followUpRecordMapper.selectByPrimaryKey(id);
+        if (followUpRecord == null) {
+            throw new GenericException(Translator.get("record_not_found"));
+        }
         if (Strings.CS.equals(userId, InternalUser.ADMIN.toString()) || Strings.CS.equals(followUpRecord.getOwner(), userId)) {
             return;
         }

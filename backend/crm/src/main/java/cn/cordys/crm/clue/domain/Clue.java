@@ -225,5 +225,12 @@ public class Clue extends BaseModel {
     @Schema(description = "企业微信UserId")
     private String enterpriseWechatUserId;
 
+    // 审批
+    @Schema(description = "审批状态")
+    private String approvalStatus;
+
+    @Schema(description = "是否已审批通过")
+    private Boolean approved;
+
     /*------ end: 纷享销客扩展字段 (ext_ver 1.11.0) ------*/
 }

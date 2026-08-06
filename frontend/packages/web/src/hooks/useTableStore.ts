@@ -238,6 +238,10 @@ export default function useTableStore() {
 
   async function getTablePaginationType(tableKey: TableKeyEnum | string) {
     const tableColumnsMap = await getTableColumnsMap(tableKey);
+    // 线索列表固定使用普通分页(页码式), 避免滚动无限加载在数据量大时导致卡顿/全量渲染
+    if (tableKey === TableKeyEnum.CLUE) {
+      return 'pagePagination';
+    }
     return tableColumnsMap?.paginationType || 'scrollPagination';
   }
 

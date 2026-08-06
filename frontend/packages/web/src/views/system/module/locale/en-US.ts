@@ -57,6 +57,7 @@ export default {
   'module.clue.operatorNotEquals': 'Not equals',
   'module.clue.operatorContains': 'Contains',
   'module.clue.matchValue': 'Value',
+  'module.clue.matchValueMulti': 'Value (separate multiple with comma)',
   'module.clue.triggerAssign': 'Trigger Assignment',
   'module.clue.triggerAssignSuccess': 'Successfully assigned {count} leads',
   'module.clue.collaboratorAdmin': 'Collaborating Admins',

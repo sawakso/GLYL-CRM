@@ -3,56 +3,95 @@
     v-model:show="visible"
     preset="card"
     :title="t('marketingForm.preview')"
-    class="w-[720px]"
+    class="w-[1100px]"
     :bordered="false"
     :mask-closable="false"
-    style="max-height: 80vh"
+    style="max-height: 85vh"
   >
     <div class="preview-modal-body">
       <div class="preview-header mb-[16px] flex items-center justify-between">
         <div class="text-[16px] font-medium">{{ formName }}</div>
-        <n-tag size="small" type="info" bordered>
-          {{ t('marketingForm.previewTip') }}
-        </n-tag>
+        <div class="flex items-center gap-[8px]">
+          <n-tag size="small" type="info" bordered>
+            {{ t('marketingForm.previewTip') }}
+          </n-tag>
+        </div>
       </div>
 
       <n-spin :show="loading">
         <n-alert v-if="errorMsg" type="warning" class="mb-[12px]">
           {{ errorMsg }}
         </n-alert>
-        <n-form
-          v-else
-          ref="formRef"
-          :model="formDetail"
-          :label-placement="formProp?.labelPos || 'top'"
-          :require-mark-placement="formProp?.labelPos === 'left' ? 'left' : 'right'"
-          label-width="auto"
-        >
-          <n-scrollbar class="preview-scroll" style="max-height: calc(80vh - 200px)">
-            <div class="flex w-full flex-wrap content-start">
-              <template v-for="item in fieldList" :key="item.id">
-                <div
-                  v-if="item.show !== false && item.readable"
-                  class="preview-form-item"
-                  :style="{ width: item.type === FieldTypeEnum.ATTACHMENT ? '100%' : `${(item.fieldWidth || 1) * 100}%` }"
-                >
-                  <component
-                    :is="getItemComponent(item)"
-                    :id="item.id"
-                    v-model:value="formDetail[item.id]"
-                    :field-config="item"
-                    :form-detail="formDetail"
-                    :origin-form-detail="originFormDetail"
-                    :need-init-detail="false"
-                    :form-config="formProp"
-                    :path="item.id"
-                    @change="() => {}"
-                  />
+        <template v-else>
+          <n-form
+            ref="formRef"
+            :model="formDetail"
+            :label-placement="formProp?.labelPos || 'top'"
+            :require-mark-placement="formProp?.labelPos === 'left' ? 'left' : 'right'"
+            label-width="auto"
+          >
+            <!-- 左右双栏预览: 左 PC / 右 手机 -->
+            <div class="preview-split">
+              <!-- PC 预览 -->
+              <div class="preview-column preview-column--pc">
+                <div class="preview-column-title">{{ t('marketingForm.previewPc') }}</div>
+                <n-scrollbar class="preview-scroll" style="max-height: calc(85vh - 240px)">
+                  <div class="flex w-full flex-wrap content-start">
+                    <template v-for="item in fieldList" :key="item.id">
+                      <div
+                        v-if="item.show !== false && item.readable"
+                        class="preview-form-item"
+                        :style="{
+                          width: item.type === FieldTypeEnum.ATTACHMENT ? '100%' : `${(item.fieldWidth || 1) * 100}%`,
+                        }"
+                      >
+                        <component
+                          :is="getItemComponent(item)"
+                          :id="item.id"
+                          v-model:value="formDetail[item.id]"
+                          :field-config="item"
+                          :form-detail="formDetail"
+                          :origin-form-detail="originFormDetail"
+                          :need-init-detail="false"
+                          :form-config="formProp"
+                          :path="item.id"
+                          @change="() => {}"
+                        />
+                      </div>
+                    </template>
+                  </div>
+                </n-scrollbar>
+              </div>
+
+              <!-- 手机预览 -->
+              <div class="preview-column preview-column--mobile">
+                <div class="preview-column-title">{{ t('marketingForm.previewMobile') }}</div>
+                <div class="preview-phone">
+                  <n-scrollbar class="preview-scroll" style="max-height: calc(85vh - 300px)">
+                    <div class="preview-phone-body">
+                      <template v-for="item in fieldList" :key="item.id">
+                        <div v-if="item.show !== false && item.readable" class="preview-phone-item">
+                          <component
+                            :is="getItemComponent(item)"
+                            :id="item.id"
+                            v-model:value="formDetail[item.id]"
+                            :field-config="item"
+                            :form-detail="formDetail"
+                            :origin-form-detail="originFormDetail"
+                            :need-init-detail="false"
+                            :form-config="formProp"
+                            :path="item.id"
+                            @change="() => {}"
+                          />
+                        </div>
+                      </template>
+                    </div>
+                  </n-scrollbar>
                 </div>
-              </template>
+              </div>
             </div>
-          </n-scrollbar>
-        </n-form>
+          </n-form>
+        </template>
       </n-spin>
     </div>
 
@@ -70,8 +109,8 @@
 </template>
 
 <script setup lang="ts">
-  import { cloneDeep } from 'lodash-es';
   import { FormInst, NButton, NForm, NModal, NScrollbar, NSpin, NTag, useMessage } from 'naive-ui';
+  import { cloneDeep } from 'lodash-es';
 
   import { FieldTypeEnum } from '@lib/shared/enums/formDesignEnum';
   import { useI18n } from '@lib/shared/hooks/useI18n';
@@ -80,6 +119,7 @@
 
   import CrmFormCreateComponents from '@/components/business/crm-form-create/components';
   import type { FormCreateField } from '@/components/business/crm-form-create/types';
+
   import { getMarketingFormDetail } from '@/api/modules';
 
   const props = defineProps<{
@@ -246,12 +286,57 @@
 <style lang="less" scoped>
   .preview-modal-body {
     min-height: 300px;
+    .preview-split {
+      @apply flex;
+
+      gap: 16px;
+    }
+    .preview-column {
+      @apply min-w-0 flex-1;
+
+      padding: 12px;
+      border: 1px solid var(--text-n7);
+      border-radius: var(--border-radius);
+      background-color: var(--text-n9);
+      &--pc {
+        flex: 1 1 60%;
+      }
+      &--mobile {
+        flex: 0 0 375px;
+      }
+      .preview-column-title {
+        margin-bottom: 12px;
+        font-size: 13px;
+        color: var(--text-n2);
+        @apply text-center font-medium;
+      }
+    }
     .preview-scroll {
       @apply w-full;
     }
     .preview-form-item {
       @apply relative self-start;
+
       padding: 0 12px;
+    }
+    // 手机屏幕样式
+    .preview-phone {
+      overflow: hidden;
+      margin: 0 auto;
+      width: 100%;
+      max-width: 360px;
+      border: 6px solid var(--text-n4);
+      border-radius: 24px;
+      background-color: #ffffff;
+      .preview-phone-body {
+        @apply flex flex-col;
+
+        padding: 16px 12px;
+        .preview-phone-item {
+          margin-bottom: 14px;
+          width: 100%;
+        }
+      }
     }
   }
 </style>

@@ -9,7 +9,7 @@ const lead: AppRouteRecordRaw = {
   redirect: '/lead/index',
   component: DEFAULT_LAYOUT,
   meta: {
-    permissions: ['CLUE_MANAGEMENT:READ', 'CLUE_MANAGEMENT_POOL:READ'],
+    permissions: ['CLUE_MANAGEMENT:READ'],
   },
   children: [
     {
@@ -48,16 +48,6 @@ const lead: AppRouteRecordRaw = {
       component: () => import('@/views/clue/clue/convert.vue'),
       meta: {
         permissions: ['CLUE_MANAGEMENT:READ'],
-        isCache: true,
-        depth: 2,
-      },
-    },
-    {
-      path: 'poolDetail',
-      name: ClueRouteEnum.CLUE_POOL_DETAIL,
-      component: () => import('@/views/clue/pool/detail.vue'),
-      meta: {
-        permissions: ['CLUE_MANAGEMENT_POOL:READ'],
         isCache: true,
         depth: 2,
       },

@@ -24,12 +24,6 @@ export const scopedOptions = [
     permission: ['CLUE_MANAGEMENT:READ'],
   },
   {
-    label: t('module.cluePool'),
-    value: FormDesignKeyEnum.SEARCH_ADVANCED_CLUE_POOL,
-    moduleKey: ModuleConfigEnum.CLUE_MANAGEMENT,
-    permission: ['CLUE_MANAGEMENT_POOL:READ'],
-  },
-  {
     label: t('crmFormDesign.customer'),
     value: FormDesignKeyEnum.SEARCH_ADVANCED_CUSTOMER,
     moduleKey: ModuleConfigEnum.CUSTOMER_MANAGEMENT,

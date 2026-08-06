@@ -22,6 +22,12 @@ public class ClueUpdateRequest {
     @Size(max = 32)
     private String id;
 
+    @Schema(description = "更新类型: normal-正常更新, approval-审批回写")
+    private String updateType;
+
+    @Schema(description = "变更说明")
+    private String comment;
+
     @Size(max = 255)
     @Schema(description = "客户名称")
     private String name;

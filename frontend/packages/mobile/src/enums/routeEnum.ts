@@ -8,7 +8,6 @@ export enum ClueRouteEnum {
   CLUE = 'lead',
   CLUE_INDEX = 'leadIndex',
   CLUE_DETAIL = 'leadDetail',
-  CLUE_POOL_DETAIL = 'leadPoolDetail',
   CONVERT = 'convert',
   MOVE_TO_POOL = 'moveToPool',
 }

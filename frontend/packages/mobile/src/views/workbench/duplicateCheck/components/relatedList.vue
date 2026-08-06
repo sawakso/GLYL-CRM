@@ -140,17 +140,6 @@
     });
   }
 
-  function goLeadPoolDetail(item: Record<string, any>) {
-    router.push({
-      name: ClueRouteEnum.CLUE_POOL_DETAIL,
-      query: {
-        id: item.id,
-        name: item.name,
-        needInitDetail: 'Y',
-      },
-    });
-  }
-
   function goPublicPoolDetail(item: Record<string, any>) {
     router.push({
       name: CustomerRouteEnum.CUSTOMER_OPENSEA_DETAIL,
@@ -167,7 +156,6 @@
     [FormDesignKeyEnum.SEARCH_ADVANCED_CUSTOMER]: goCustomerDetail,
     [FormDesignKeyEnum.SEARCH_ADVANCED_CONTACT]: goOptOrAccountDetail,
     [FormDesignKeyEnum.SEARCH_ADVANCED_PUBLIC]: goPublicPoolDetail,
-    [FormDesignKeyEnum.SEARCH_ADVANCED_CLUE_POOL]: goLeadPoolDetail,
     [FormDesignKeyEnum.SEARCH_ADVANCED_OPPORTUNITY]: goOptOrAccountDetail,
   };
 

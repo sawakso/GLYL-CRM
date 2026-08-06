@@ -75,11 +75,9 @@
         <n-form-item :label="t('marketingForm.targetPool')" path="targetPoolId" :rule="targetPoolRule">
           <n-select
             v-model:value="settingsForm.targetPoolId"
-            :options="poolOptions"
+            :options="poolOptionList"
             :placeholder="t('marketingForm.selectTargetPool')"
             filterable
-            label-field="name"
-            value-field="id"
           />
         </n-form-item>
         <n-form-item :label="t('marketingForm.dedupStrategy')" path="dedupStrategy">
@@ -102,7 +100,11 @@
             <span class="text-[12px] text-[var(--text-n5)]">{{ t('marketingForm.dedupWindowTip') }}</span>
           </div>
         </n-form-item>
-        <n-form-item v-if="settingsForm.dedupStrategy !== 'INHERIT'" :label="t('marketingForm.dedupKey')" path="dedupKey">
+        <n-form-item
+          v-if="settingsForm.dedupStrategy !== 'INHERIT'"
+          :label="t('marketingForm.dedupKey')"
+          path="dedupKey"
+        >
           <n-select v-model:value="settingsForm.dedupKey" :options="dedupKeyOptions" />
         </n-form-item>
         <n-form-item :label="t('marketingForm.requireName')" path="requireName">
@@ -122,11 +124,7 @@
     </div>
   </CrmProcessDrawer>
 
-  <PreviewModal
-    v-model:visible="previewVisible"
-    :form-id="currentSourceId"
-    :form-name="formName"
-  />
+  <PreviewModal v-model:visible="previewVisible" :form-id="currentSourceId" :form-name="formName" />
 </template>
 
 <script setup lang="ts">
@@ -161,12 +159,22 @@
     useFormDesignConfig,
   } from '@/components/business/crm-form-design-drawer/useFormDesignConfig';
   import CrmProcessDrawer from '@/components/business/crm-process-drawer/index.vue';
-
-  import { addMarketingForm, getMarketingFormDetail, getPoolOptions, updateMarketingForm, getClueFormConfig } from '@/api/modules';
-  import useModal from '@/hooks/useModal';
   import PreviewModal from '../previewModal/index.vue';
 
+  import {
+    addMarketingForm,
+    getClueFormConfig,
+    getMarketingFormDetail,
+    getPoolOptions,
+    updateMarketingForm,
+  } from '@/api/modules';
+  import useModal from '@/hooks/useModal';
+  import { useUserStore } from '@/store';
+
   const CrmFormDesign = defineAsyncComponent(() => import('@/components/business/crm-form-design/index.vue'));
+
+  // 线索对象姓名字段ID(必填, 不可删除) - 市场表单新建默认引用它
+  const NAME_FIELD_REF_ID = '432350589340127233';
 
   interface MappingRow {
     fieldId: string;
@@ -191,12 +199,18 @@
   const { t } = useI18n();
   const Message = useMessage();
   const { openModal } = useModal();
+  const userStore = useUserStore();
+  const isAdmin = computed(() => userStore.isAdmin);
 
   const activeTab = ref<'design' | 'settings'>('design');
-  const tabList = computed(() => [
-    { name: 'design', tab: t('marketingForm.formDesign') },
-    { name: 'settings', tab: t('marketingForm.settings') },
-  ]);
+  // 市场设置仅管理员可见/可用；非 admin 只保留「表单设计」
+  const tabList = computed(() => {
+    const tabs = [{ name: 'design', tab: t('marketingForm.formDesign') }];
+    if (isAdmin.value) {
+      tabs.push({ name: 'settings', tab: t('marketingForm.settings') });
+    }
+    return tabs;
+  });
 
   const titleSaving = ref(false);
   const currentSourceId = ref('');
@@ -214,6 +228,8 @@
   }
   const settingsFormRef = ref<FormInst | null>(null);
   const poolOptions = ref<CluePoolItem[]>([]);
+  // 转换为 n-select 期望的 { label, value } 结构，避免 name/id 字段映射不生效
+  const poolOptionList = computed(() => (poolOptions.value || []).map((p) => ({ label: p.name, value: p.id })));
 
   const settingsForm = ref({
     description: '',
@@ -260,12 +276,14 @@
         internalKey: f.internalKey || f.businessKey, // 业务key缺时回退internalKey供applyClueField兼容
       }));
     })
-    .catch(() => { clueFieldList.value = []; });
+    .catch(() => {
+      clueFieldList.value = [];
+    });
 
   // 辅助: 从线索字段列表按 id/businessKey 查找匹配键值 (优先 businessKey→internalKey→id)
   function matchClueFieldKey(fieldId: string): string {
     const cf = clueFieldList.value.find((c) => c.id === fieldId);
-    return cf ? (cf.businessKey || cf.internalKey || cf.id) : '';
+    return cf ? cf.businessKey || cf.internalKey || cf.id : '';
   }
 
   // 可映射的 Clue 字段名 (动态加载线索模块全量字段)
@@ -305,9 +323,8 @@
         fieldId: f.id,
         fieldName: f.name || '',
         fieldLabel: f.name || f.id,
-        mappedTo: fieldMapping.value[f.id]
-          || ((f as any).refFieldId ? matchClueFieldKey((f as any).refFieldId) : '')
-          || '',
+        mappedTo:
+          fieldMapping.value[f.id] || ((f as any).refFieldId ? matchClueFieldKey((f as any).refFieldId) : '') || '',
       }));
   });
 
@@ -501,33 +518,18 @@
   }
 
   function createDefaultMarketingFormFields(): FormCreateField[] {
-    const createDivider = (name: string): FormCreateField => ({
-      ...dividerDefaultFieldConfig,
-      id: getGenerateId(),
-      name,
-    });
-    const createInput = (name: string, options?: Partial<FormCreateField>): FormCreateField => ({
+    // 新建表单默认仅包含「姓名」必填字段（引用线索姓名字段, 存入线索姓名独立字段EAV, 不占 name 列）
+    const nameField: FormCreateField = {
       ...inputDefaultFieldConfig,
       id: getGenerateId(),
-      name,
-      ...options,
-    });
-
-    return [
-      createDivider(t('marketingForm.basicInfo')),
-      createInput(t('marketingForm.clueField.name'), {
-        rules: [{ key: FieldRuleEnum.REQUIRED }],
-      }),
-      createInput(t('marketingForm.clueField.mobile')),
-      createInput(t('marketingForm.clueField.email')),
-      createDivider(t('marketingForm.customerInfo')),
-      createInput(t('marketingForm.clueField.company')),
-      createInput(t('marketingForm.clueField.jobTitle')),
-      createInput(t('marketingForm.clueField.address')),
-      createDivider(t('marketingForm.customField')),
-      createInput(`${t('marketingForm.customField')} 1`),
-      createInput(`${t('marketingForm.customField')} 2`),
-    ];
+      name: t('marketingForm.name'),
+      rules: [{ key: FieldRuleEnum.REQUIRED }],
+    };
+    // 通过 refFieldId 精确映射到线索姓名字段, 提交后姓名写入线索姓名字段(EAV)
+    (nameField as any).refFieldId = NAME_FIELD_REF_ID;
+    (nameField as any).businessKey = 'clueNameField';
+    (nameField as any).isNameField = true; // 标记为姓名必填字段(不可删除)
+    return [nameField];
   }
 
   async function initMarketingFormConfig() {
@@ -546,7 +548,8 @@
       formEnabled.value = true;
       settingsForm.value = {
         description: '',
-        targetPoolId: '',
+        // 新建表单默认进组织默认线索池（isDefault 标记优先，否则第一个启用池）
+        targetPoolId: (poolOptions.value.find((p) => p.isDefault) || poolOptions.value[0])?.id || '',
         dedupStrategy: 'INHERIT',
         dedupWindow: null,
         dedupKey: '',
@@ -597,7 +600,8 @@
         activeTab.value = 'design';
         return;
       }
-      activeTab.value = props.defaultTab || 'design';
+      // 非 admin 强制回退到「表单设计」，避免进入无权访问的市场设置
+      activeTab.value = props.defaultTab === 'settings' && !isAdmin.value ? 'design' : props.defaultTab || 'design';
       initMarketingFormConfig();
     },
     { immediate: true }

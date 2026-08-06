@@ -24,15 +24,7 @@ export default function setupPermissionGuard(router: Router) {
     const currentMenuConfig: string[] = appStore.moduleConfigList.filter((e) => e.enable).map((e) => e.moduleKey);
     const moduleId = Object.keys(featureRouteMap).find((key) => (to.name as string)?.includes(key));
 
-    // 调试日志
-    console.log('[PermissionGuard] to.name=', to.name,
-      '| moduleId=', moduleId,
-      '| moduleEnabledInConfig=', moduleId ? currentMenuConfig.includes(featureRouteMap[moduleId]) : 'N/A',
-      '| permissionsAllow=', permissionsAllow,
-      '| moduleConfigLen=', appStore.moduleConfigList.length);
-
     if (moduleId && featureRouteMap[moduleId] && !currentMenuConfig.includes(featureRouteMap[moduleId])) {
-      console.log('[PermissionGuard] >>> BLOCKED by module config (no-resource)');
       next({ name: NO_RESOURCE_ROUTE_NAME });
       NProgress.done();
       return;

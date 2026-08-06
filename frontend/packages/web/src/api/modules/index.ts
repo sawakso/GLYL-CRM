@@ -760,6 +760,7 @@ export const {
   toggleField,
   addField,
   deleteField,
+  updateField,
 } = moduleApi;
 
 export const {

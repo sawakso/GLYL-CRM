@@ -453,6 +453,13 @@ export default function useProductApi(CDR: CordysAxios) {
     return CDR.post<string>({ url: `/field-config/${formKey}/${fieldId}` });
   }
 
+  function updateField(
+    formKey: string,
+    data: { id: string; name?: string; internalKey?: string; businessKey?: string }
+  ) {
+    return CDR.post<string>({ url: `/field-config/${formKey}/update`, data });
+  }
+
   return {
     getFieldDisplayList,
     getModuleNavConfigList,
@@ -530,5 +537,6 @@ export default function useProductApi(CDR: CordysAxios) {
     toggleField,
     addField,
     deleteField,
+    updateField,
   };
 }

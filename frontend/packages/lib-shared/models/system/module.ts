@@ -194,6 +194,7 @@ export interface CluePoolItem {
   ownerId: string;
   collaboratorId?: string;
   enable: boolean;
+  isDefault?: boolean; // 是否默认线索池(市场表单未配置目标池时进此池)
   auto: boolean;
   pickMode?: string; // 领取模式
   newLeadRemind?: boolean; // 新线索提醒

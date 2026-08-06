@@ -127,6 +127,8 @@
   import { remapFormulaFieldIds } from '@/components/business/crm-formula-editor/parseSource/remapFormulaFieldIds';
   import dataTable from './dataTable.vue';
 
+  import { useUserStore } from '@/store';
+
   import { resolveFieldId } from '../../crm-formula-editor/utils';
 
   const props = defineProps<{
@@ -135,6 +137,7 @@
 
   const { t } = useI18n();
   const message = useMessage();
+  const userStore = useUserStore();
 
   const list = defineModel<FormCreateField[]>('list', {
     required: true,
@@ -379,6 +382,13 @@
   }
 
   function deleteItem(item: FormCreateField) {
+    // 姓名字段(映射线索name)必填且必须存在, 非管理员不允许删除
+    if ((item as any).businessKey === 'name' || (item as any).isNameField) {
+      if (!userStore.isAdmin) {
+        message.warning(t('crmFormDesign.nameFieldNotDeletable'));
+        return;
+      }
+    }
     let newList = list.value.filter((e) => e.id !== item.id);
     if (activeItem.value?.id === item.id) {
       activeItem.value = null;

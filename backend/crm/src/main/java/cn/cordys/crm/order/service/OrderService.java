@@ -263,6 +263,9 @@ public class OrderService implements ApprovalResourceHandler {
      */
     public OrderGetResponse get(String id, String orgId) {
         Order order = orderMapper.selectByPrimaryKey(id);
+        if (order == null) {
+            return null;
+        }
         // 获取模块字段
         ModuleFormConfigDTO orderFormConfig = getFormConfig(order.getOrganizationId());
         List<BaseModuleFieldValue> orderFields = orderFieldService.getModuleFieldValuesByResourceId(id);
@@ -1023,6 +1026,9 @@ public class OrderService implements ApprovalResourceHandler {
         if (StringUtils.isNotBlank(request.getDropNodeId())) {
             //放入节点
             Order dropNode = orderMapper.selectByPrimaryKey(request.getDropNodeId());
+            if (dropNode == null) {
+                throw new GenericException(Translator.get("order_not_exist"));
+            }
             pos = dropNode.getPos();
             if (request.getDropPosition() == -1) {
 

@@ -232,6 +232,15 @@ public class ClueService {
         // 意向产品选项
         List<OptionDTO> productOption = extProductMapper.getOptions(orgId);
         optionMap.put(BusinessModuleField.OPPORTUNITY_PRODUCTS.getBusinessKey(), productOption);
+
+        // 线索池选项：所属线索池字段(leads_pool_id)根据 poolId 解析池名称，避免列表直接展示池ID
+        List<CluePool> pools = cluePoolService.getAllPool(orgId);
+        if (CollectionUtils.isNotEmpty(pools)) {
+            List<OptionDTO> poolOption = pools.stream()
+                    .map(p -> new OptionDTO(p.getId(), p.getName()))
+                    .collect(Collectors.toList());
+            optionMap.put(BusinessModuleField.CLUE_LEADS_POOL_ID.getBusinessKey(), poolOption);
+        }
         return optionMap;
     }
 
@@ -348,6 +357,14 @@ public class ClueService {
         List<OptionDTO> productOption = extProductMapper.getOptions(clue.getOrganizationId());
         optionMap.put(BusinessModuleField.OPPORTUNITY_PRODUCTS.getBusinessKey(), productOption);
 
+        // 线索池选项：所属线索池字段(leads_pool_id)根据 poolId 解析池名称，避免详情直接展示池ID
+        List<CluePool> pools = cluePoolService.getAllPool(clue.getOrganizationId());
+        if (CollectionUtils.isNotEmpty(pools)) {
+            List<OptionDTO> poolOption = pools.stream()
+                    .map(p -> new OptionDTO(p.getId(), p.getName()))
+                    .collect(Collectors.toList());
+            optionMap.put(BusinessModuleField.CLUE_LEADS_POOL_ID.getBusinessKey(), poolOption);
+        }
 
         clueGetResponse.setOptionMap(optionMap);
         clueGetResponse.setModuleFields(clueFields);
@@ -473,11 +490,11 @@ public class ClueService {
         // 消息通知
         commonNoticeSendService.sendNotice(NotificationConstants.Module.CLUE,
                 NotificationConstants.Event.CLUE_ADD, clue.getName(), userId,
-                orgId, List.of(clue.getOwner()), true);
+                orgId, clue.getOwner() == null ? List.of() : List.of(clue.getOwner()), true);
         return clue;
     }
 
-    @HitApproval(formKey = FormKey.CLUE, executeType = ExecuteTimingEnum.UPDATE, resourceId = "{#request.id}", operatorId = "{#userId}")
+    @HitApproval(formKey = FormKey.CLUE, executeType = ExecuteTimingEnum.UPDATE, resourceId = "{#request.id}", updateType = "{#request.updateType}", comment = "{#request.comment}", operatorId = "{#userId}")
     @OperationLog(module = LogModule.CLUE_INDEX, type = LogType.UPDATE, resourceId = "{#request.id}")
     public Clue update(ClueUpdateRequest request, String userId, String orgId) {
         productService.checkProductList(request.getProducts());
@@ -527,6 +544,9 @@ public class ClueService {
     @OperationLog(module = LogModule.CLUE_INDEX, type = LogType.UPDATE, resourceId = "{#request.id}")
     public void updateStatus(ClueStatusUpdateRequest request, String userId, String orgId) {
         Clue originClue = clueMapper.selectByPrimaryKey(request.getId());
+        if (originClue == null) {
+            throw new GenericException(Translator.get("clue_not_found"));
+        }
         Clue clue = BeanUtils.copyBean(new Clue(), request);
         clue.setUpdateTime(System.currentTimeMillis());
         clue.setUpdateUser(userId);
@@ -597,7 +617,7 @@ public class ClueService {
 
         commonNoticeSendService.sendNotice(NotificationConstants.Module.CLUE,
                 NotificationConstants.Event.CLUE_CONVERT_CUSTOMER, clue.getName(), userId,
-                orgId, List.of(clue.getOwner()), true);
+                orgId, clue.getOwner() == null ? List.of() : List.of(clue.getOwner()), true);
     }
 
 
@@ -621,7 +641,7 @@ public class ClueService {
         // 消息通知
         commonNoticeSendService.sendNotice(NotificationConstants.Module.CLUE,
                 NotificationConstants.Event.CLUE_DELETED, clue.getName(), userId,
-                orgId, List.of(clue.getOwner()), true);
+                orgId, clue.getOwner() == null ? List.of() : List.of(clue.getOwner()), true);
 
     }
 
@@ -671,7 +691,7 @@ public class ClueService {
         // 消息通知
         clues.forEach(clue -> commonNoticeSendService.sendNotice(NotificationConstants.Module.CLUE,
                 NotificationConstants.Event.CLUE_DELETED, clue.getName(), userId,
-                orgId, List.of(clue.getOwner()), true));
+                orgId, clue.getOwner() == null ? List.of() : List.of(clue.getOwner()), true));
     }
 
     private List<String> getOwners(List<Clue> clues) {
@@ -831,7 +851,7 @@ public class ClueService {
             // 消息通知
             commonNoticeSendService.sendNotice(NotificationConstants.Module.CLUE,
                     NotificationConstants.Event.CLUE_MOVED_POOL, clue.getName(), currentUser,
-                    orgId, List.of(clue.getOwner()), true);
+                    orgId, clue.getOwner() == null ? List.of() : List.of(clue.getOwner()), true);
             // 插入责任人历史
             clue.setReasonId(request.getReasonId());
             clueOwnerHistoryService.add(clue, currentUser, true);
@@ -958,6 +978,9 @@ public class ClueService {
     public void transitionCs(String clueId, Customer transitionCs, String currentUser, String orgId) {
         Clue clue = clueMapper.selectByPrimaryKey(clueId);
         // 负责人不存在, 跳过关联
+        if (clue.getOwner() == null) {
+            return;
+        }
         List<String> owners = extUserMapper.selectUserNameByIds(List.of(clue.getOwner()));
         if (CollectionUtils.isEmpty(owners)) {
             return;
@@ -981,7 +1004,7 @@ public class ClueService {
         paramMap.put("customerName", transitionCs.getName());
         paramMap.put("name", clue.getName());
         commonNoticeSendService.sendNotice(NotificationConstants.Module.CLUE, NotificationConstants.Event.CLUE_CONVERT_CUSTOMER,
-                paramMap, currentUser, orgId, List.of(clue.getOwner()), true);
+                paramMap, currentUser, orgId, clue.getOwner() == null ? List.of() : List.of(clue.getOwner()), true);
     }
 
     /**
@@ -996,6 +1019,9 @@ public class ClueService {
         Clue clue = clueMapper.selectByPrimaryKey(request.getClueId());
         if (clue == null) {
             throw new GenericException(Translator.get("clue_not_exist"));
+        }
+        if (clue.getOwner() == null) {
+            throw new GenericException(Translator.get("clue_owner_not_exist"));
         }
         List<String> owners = extUserMapper.selectUserNameByIds(List.of(clue.getOwner()));
         if (CollectionUtils.isEmpty(owners)) {
@@ -1035,7 +1061,7 @@ public class ClueService {
         paramMap.put("template", Translator.get("message.clue_convert_customer_text"));
         paramMap.put("name", clue.getName());
         commonNoticeSendService.sendNotice(NotificationConstants.Module.CLUE, NotificationConstants.Event.CLUE_CONVERT_CUSTOMER,
-                paramMap, currentUser, orgId, List.of(clue.getOwner()), true);
+                paramMap, currentUser, orgId, clue.getOwner() == null ? List.of() : List.of(clue.getOwner()), true);
 
         // 是否转换商机
         if (request.getOppCreated()) {
@@ -1046,7 +1072,7 @@ public class ClueService {
             paramMap.put("template", Translator.get("message.clue_convert_business_text"));
             paramMap.put("name", clue.getName());
             commonNoticeSendService.sendNotice(NotificationConstants.Module.CLUE, NotificationConstants.Event.CLUE_CONVERT_BUSINESS,
-                    paramMap, currentUser, orgId, List.of(clue.getOwner()), true);
+                    paramMap, currentUser, orgId, clue.getOwner() == null ? List.of() : List.of(clue.getOwner()), true);
             return transformOpportunity.getId();
         } else {
             // 转移线索的计划&记录
@@ -1562,9 +1588,14 @@ public class ClueService {
         List<String> customerIds = clueFollowMap.keySet().stream().toList();
         List<Customer> customers = customerMapper.selectByIds(customerIds);
         customers.forEach(customer -> {
-            if (customer.getFollowTime() == null || customer.getFollowTime() < clueFollowMap.get(customer.getId()).getFollowerTime()) {
-                customer.setFollower(clueFollowMap.get(customer.getId()).getFollower());
-                customer.setFollowTime(clueFollowMap.get(customer.getId()).getFollowerTime());
+            ClueFollowDTO followDTO = clueFollowMap.get(customer.getId());
+            if (followDTO == null || followDTO.getFollowerTime() == null) {
+                // 无有效跟进记录时间，跳过
+                return;
+            }
+            if (customer.getFollowTime() == null || customer.getFollowTime() < followDTO.getFollowerTime()) {
+                customer.setFollower(followDTO.getFollower());
+                customer.setFollowTime(followDTO.getFollowerTime());
             }
             customerMapper.updateById(customer);
         });

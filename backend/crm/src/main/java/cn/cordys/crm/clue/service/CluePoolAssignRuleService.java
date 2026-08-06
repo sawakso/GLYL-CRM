@@ -5,6 +5,7 @@ import cn.cordys.common.exception.GenericException;
 import cn.cordys.common.uid.IDGenerator;
 import cn.cordys.common.util.BeanUtils;
 import cn.cordys.common.util.JSON;
+
 import cn.cordys.common.util.Translator;
 import cn.cordys.crm.clue.constants.CluePoolAssignConstants;
 import cn.cordys.crm.clue.domain.Clue;
@@ -13,8 +14,10 @@ import cn.cordys.crm.clue.domain.CluePoolAssignRule;
 import cn.cordys.crm.clue.dto.AssignRuleConditionDTO;
 import cn.cordys.crm.clue.dto.CluePoolAssignRuleDTO;
 import cn.cordys.crm.clue.mapper.ExtCluePoolAssignRuleMapper;
+import cn.cordys.crm.system.constants.NotificationConstants;
 import cn.cordys.crm.system.dto.ScopeNameDTO;
 import cn.cordys.crm.system.mapper.ExtDepartmentMapper;
+import cn.cordys.crm.system.notice.CommonNoticeSendService;
 import cn.cordys.crm.system.service.UserExtendService;
 import cn.cordys.mybatis.BaseMapper;
 import cn.cordys.mybatis.lambda.LambdaQueryWrapper;
@@ -64,6 +67,10 @@ public class CluePoolAssignRuleService {
     private ClueFieldService clueFieldService;
     @Resource
     private ExtDepartmentMapper extDepartmentMapper;
+    @Resource
+    private ClueOwnerHistoryService clueOwnerHistoryService;
+    @Resource
+    private CommonNoticeSendService commonNoticeSendService;
 
     /**
      * 保存线索池的分配规则(先删后插)
@@ -75,7 +82,6 @@ public class CluePoolAssignRuleService {
      */
     public void saveRules(String poolId, List<CluePoolAssignRuleDTO> rules, String currentUserId, String currentOrgId) {
         checkPoolBelongsToOrganization(poolId, currentOrgId);
-        log.warn("DEBUG saveRules poolId={} rules.size={} raw={}", poolId, rules == null ? "null" : rules.size(), JSON.toJSONString(rules));
         if (CollectionUtils.isEmpty(rules)) {
             extCluePoolAssignRuleMapper.deleteByPoolId(poolId, currentOrgId);
             return;
@@ -275,6 +281,102 @@ public class CluePoolAssignRuleService {
         return doMatchAndAssign(clueId, poolId, currentOrgId, operatorId);
     }
 
+    /**
+     * 核心:匹配线索池分配规则,仅为线索设置负责人(不动用线索池状态)。
+     * <p>
+     * 适用于「市场表单回流」等场景:线索本身就是普通线索(in_shared_pool=false, 不放入池),
+     * 线索池仅作为「分配规则」使用 —— 命中规则后直接把匹配到的目标人员设为线索负责人,
+     * 不修改 pool_id / in_shared_pool / stage 等归属状态, 线索始终显示在「线索」列表中。
+     * <p>
+     * 匹配逻辑与 {@link #matchAndAssign} 一致(按字段值命中规则, 支持 SINGLE / ROUND_ROBIN / DEPT 目标)。
+     * 未命中任何规则时, 线索保持无负责人(owner 为空), 但依旧是普通线索、对管理员/角色可见。
+     *
+     * @param clueId       线索ID
+     * @param poolId       线索池ID(仅用于读取分配规则)
+     * @param currentOrgId 当前组织ID
+     * @param operatorId   操作人ID(系统分配时为 ADMIN)
+     * @return true=已命中规则并设置负责人; false=未匹配到规则或目标用户不可用
+     */
+    public boolean matchAndAssignOwner(String clueId, String poolId, String currentOrgId, String operatorId) {
+        checkPoolBelongsToOrganization(poolId, currentOrgId);
+        Clue clue = clueMapper.selectByPrimaryKey(clueId);
+        if (clue == null || !Strings.CS.equals(clue.getOrganizationId(), currentOrgId)) {
+            return false;
+        }
+        return doMatchAndAssignOwner(clueId, poolId, currentOrgId, operatorId);
+    }
+
+    /**
+     * 仅设置负责人版的匹配分配: 复用规则匹配, 命中后调用 {@link #assignOwner} 只改 owner。
+     */
+    private boolean doMatchAndAssignOwner(String clueId, String poolId, String currentOrgId, String operatorId) {
+        List<CluePoolAssignRule> rules = extCluePoolAssignRuleMapper.selectEnabledByPoolId(poolId, currentOrgId);
+        if (CollectionUtils.isEmpty(rules)) {
+            return false;
+        }
+
+        List<BaseModuleFieldValue> fieldValues = clueFieldService.getResourceFieldMap(List.of(clueId), true).get(clueId);
+        if (CollectionUtils.isEmpty(fieldValues)) {
+            fieldValues = new ArrayList<>();
+        }
+        Map<String, Object> fieldValueMap = fieldValues.stream()
+                .filter(v -> v.getFieldId() != null)
+                .collect(Collectors.toMap(BaseModuleFieldValue::getFieldId, BaseModuleFieldValue::getFieldValue, (a, b) -> a));
+
+        // 系统创建时间注入,供时间条件(CLUE_CREATE_TIME)使用
+        Clue clue = clueMapper.selectByPrimaryKey(clueId);
+        if (clue != null && clue.getCreateTime() != null) {
+            fieldValueMap.put(CluePoolAssignConstants.TIME_FIELD_CLUE_CREATE_TIME, clue.getCreateTime());
+        }
+
+        for (CluePoolAssignRule rule : rules) {
+            if (matchRule(rule, fieldValueMap)) {
+                String targetUserId = resolveTargetUser(rule, operatorId, currentOrgId);
+                if (targetUserId != null) {
+                    try {
+                        return assignOwner(clueId, targetUserId, currentOrgId, operatorId);
+                    } catch (Exception e) {
+                        log.warn("线索负责人自动分配失败, clueId={}, poolId={}, targetUser={}, error={}",
+                                clueId, poolId, targetUserId, e.getMessage());
+                        return false;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 仅为线索设置负责人, 不改变线索池归属状态(in_shared_pool / pool_id / stage 保持不变)。
+     */
+    private boolean assignOwner(String clueId, String targetUserId, String currentOrgId, String operatorId) {
+        Clue clue = clueMapper.selectByPrimaryKey(clueId);
+        if (clue == null || !Strings.CS.equals(clue.getOrganizationId(), currentOrgId)) {
+            return false;
+        }
+        clue.setOwner(targetUserId);
+        clue.setUpdateTime(System.currentTimeMillis());
+        clue.setUpdateUser(operatorId);
+        clueMapper.update(clue);
+
+        // 记录负责人变更历史
+        try {
+            clueOwnerHistoryService.add(clue, operatorId, false);
+        } catch (Exception e) {
+            log.warn("记录线索负责人历史失败, clueId={}, error={}", clueId, e.getMessage());
+        }
+
+        // 分配通知
+        try {
+            commonNoticeSendService.sendNotice(NotificationConstants.Module.CLUE,
+                    NotificationConstants.Event.CLUE_DISTRIBUTED, clue.getName(), operatorId,
+                    currentOrgId, List.of(targetUserId), true);
+        } catch (Exception e) {
+            log.warn("线索分配通知失败, clueId={}, error={}", clueId, e.getMessage());
+        }
+        return true;
+    }
+
     private boolean doMatchAndAssign(String clueId, String poolId, String currentOrgId, String operatorId) {
         List<CluePoolAssignRule> rules = extCluePoolAssignRuleMapper.selectEnabledByPoolId(poolId, currentOrgId);
         if (CollectionUtils.isEmpty(rules)) {
@@ -413,11 +515,45 @@ public class CluePoolAssignRuleService {
         }
 
         return switch (operator) {
-            case CluePoolAssignConstants.OPERATOR_EQUALS -> Strings.CS.equals(actualStr, expectedValue);
-            case CluePoolAssignConstants.OPERATOR_NOT_EQUALS -> !Strings.CS.equals(actualStr, expectedValue);
-            case CluePoolAssignConstants.OPERATOR_CONTAINS -> actualStr.contains(expectedValue);
+            case CluePoolAssignConstants.OPERATOR_EQUALS -> matchesMultiValue(actualStr, expectedValue, false);
+            case CluePoolAssignConstants.OPERATOR_NOT_EQUALS -> !matchesMultiValue(actualStr, expectedValue, false);
+            case CluePoolAssignConstants.OPERATOR_CONTAINS -> matchesMultiValue(actualStr, expectedValue, true);
             default -> false;
         };
+    }
+
+    /**
+     * 多值匹配: 条件值支持以「中文逗号、英文逗号、分号、竖线」分隔的多个值, 任一命中即满足。
+     * <p>用于「负责区域 等于 北京市,天津市,河北省」这类"或"关系配置。</p>
+     *
+     * @param actualStr  线索字段实际值(字符串)
+     * @param rawValue   条件配置值(可能包含多个用分隔符隔开的值)
+     * @param contains   是否包含匹配(CONTAINS 时按包含判断, 否则精确相等)
+     * @return 任一匹配返回 true
+     */
+    private boolean matchesMultiValue(String actualStr, String rawValue, boolean contains) {
+        if (StringUtils.isBlank(rawValue) || StringUtils.isBlank(actualStr)) {
+            return false;
+        }
+        // 兼容单值场景
+        if (contains) {
+            return actualStr.contains(rawValue);
+        }
+        // 拆分为多值后, 任一精确相等即命中
+        List<String> values = Arrays.stream(rawValue.split("[，,;；|]"))
+                .map(String::trim)
+                .filter(StringUtils::isNotBlank)
+                .distinct()
+                .toList();
+        if (values.size() <= 1) {
+            return Strings.CS.equals(actualStr, rawValue.trim());
+        }
+        for (String value : values) {
+            if (Strings.CS.equals(actualStr, value)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -572,6 +708,18 @@ public class CluePoolAssignRuleService {
      */
     public void deleteByPoolId(String poolId, String currentOrgId) {
         extCluePoolAssignRuleMapper.deleteByPoolId(poolId, currentOrgId);
+    }
+
+    /**
+     * 检查线索池是否有启用的分配规则。
+     *
+     * @param poolId       线索池ID
+     * @param currentOrgId 当前组织ID
+     * @return true=至少有一条启用规则
+     */
+    public boolean hasEnabledRules(String poolId, String currentOrgId) {
+        List<CluePoolAssignRule> rules = extCluePoolAssignRuleMapper.selectEnabledByPoolId(poolId, currentOrgId);
+        return CollectionUtils.isNotEmpty(rules);
     }
 
     private void checkPoolBelongsToOrganization(String poolId, String currentOrgId) {

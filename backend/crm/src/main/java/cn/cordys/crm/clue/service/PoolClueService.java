@@ -236,7 +236,7 @@ public class PoolClueService {
         LambdaQueryWrapper<CluePoolPickRule> pickRuleWrapper = new LambdaQueryWrapper<>();
         pickRuleWrapper.eq(CluePoolPickRule::getPoolId, request.getPoolId());
         List<CluePoolPickRule> cluePoolPickRules = pickRuleMapper.selectListByLambda(pickRuleWrapper);
-        CluePoolPickRule pickRule = cluePoolPickRules.getFirst();
+        CluePoolPickRule pickRule = cluePoolPickRules.isEmpty() ? null : cluePoolPickRules.getFirst();
         if (!poolAdmin) {
             validateDailyPickNum(1, currentUser, pickRule);
         }
@@ -293,7 +293,7 @@ public class PoolClueService {
         LambdaQueryWrapper<CluePoolPickRule> pickRuleWrapper = new LambdaQueryWrapper<>();
         pickRuleWrapper.eq(CluePoolPickRule::getPoolId, request.getPoolId());
         List<CluePoolPickRule> cluePoolPickRules = pickRuleMapper.selectListByLambda(pickRuleWrapper);
-        CluePoolPickRule pickRule = cluePoolPickRules.getFirst();
+        CluePoolPickRule pickRule = cluePoolPickRules.isEmpty() ? null : cluePoolPickRules.getFirst();
         if (!poolAdmin) {
             validateDailyPickNum(request.getBatchIds().size(), currentUser, pickRule);
         }
@@ -355,6 +355,10 @@ public class PoolClueService {
      * @param pickRule     领取规则
      */
     public void validateDailyPickNum(int pickingCount, String ownUserId, CluePoolPickRule pickRule) {
+        if (pickRule == null) {
+            // 未配置领取规则时，不做每日领取数量限制
+            return;
+        }
         if (pickRule.getLimitOnNumber()) {
             LambdaQueryWrapper<Clue> clueWrapper = new LambdaQueryWrapper<>();
             clueWrapper
@@ -435,7 +439,7 @@ public class PoolClueService {
         // 分配通知
         if (Strings.CS.equals(logType, LogType.ASSIGN)) {
             commonNoticeSendService.sendNotice(NotificationConstants.Module.CLUE, NotificationConstants.Event.CLUE_DISTRIBUTED,
-                    clue.getName(), operateUserId, currentOrgId, List.of(clue.getOwner()), true);
+                    clue.getName(), operateUserId, currentOrgId, clue.getOwner() == null ? List.of() : List.of(clue.getOwner()), true);
         }
     }
 
