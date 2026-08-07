@@ -28,9 +28,13 @@
         </div>
         <div v-if="loading" class="crm-user-card-loading">加载中...</div>
         <div v-else-if="card" class="crm-user-card-body">
-          <div v-if="card?.departmentName || card?.deptPath" class="crm-user-card-row">
+          <div v-if="departmentPath.length" class="crm-user-card-row crm-user-card-row-department">
             <span class="crm-user-card-label">部门</span>
-            <span class="crm-user-card-value">{{ card?.deptPath || card?.departmentName }}</span>
+            <div class="crm-user-card-value">
+              <div v-for="(item, index) in departmentPath" :key="index" class="crm-user-card-dept-line">
+                {{ item }}
+              </div>
+            </div>
           </div>
           <div v-if="card?.supervisorName" class="crm-user-card-row">
             <span class="crm-user-card-label">直属上级</span>
@@ -62,7 +66,7 @@
 
 <script setup lang="ts">
   import { NAvatar, NPopover } from 'naive-ui';
-  import { ref } from 'vue';
+  import { computed, ref } from 'vue';
 
   import { getUserCard } from '@/api/modules';
   import type { UserCardInfo } from '@lib/shared/models/system/org';
@@ -83,6 +87,15 @@
   const card = ref<UserCardInfo | null>(null);
 
   const nameText = props.name || '-';
+
+  // 部门路径按 / 拆分，每个层级显示一行
+  const departmentPath = computed(() => {
+    const path = card.value?.deptPath || card.value?.departmentName || '';
+    return String(path)
+      .split('/')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  });
 
   async function loadCard() {
     if (!props.userId || card.value) return;
@@ -168,6 +181,17 @@
   }
   .crm-user-card-value {
     min-width: 0;
+    flex: 1;
+    overflow-wrap: anywhere;
     word-break: break-all;
+  }
+  .crm-user-card-row-department {
+    align-items: flex-start;
+  }
+  .crm-user-card-dept-line {
+    line-height: 1.5;
+  }
+  .crm-user-card-dept-line + .crm-user-card-dept-line {
+    margin-top: 2px;
   }
 </style>
