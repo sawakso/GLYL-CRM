@@ -589,18 +589,11 @@
     item: FormCreateField,
     dataSourceFormFields?: FormCreateField[]
   ) {
-    // 控制显示规则
+    // 控制显示规则 (字段显隐通过 v-show 控制，不卸载组件，避免 naive-ui NScrollbar
+    // 的 ResizeObserver 在半拆除的 vnode 树上 patch 导致 "Cannot set properties of null")
     if (item.showControlRules?.length) {
-      initFormShowControl(value);
       nextTick(() => {
-        const labelNodes = Array.from(document.querySelectorAll('.n-form-item-label'));
-        const noWidthLabelNodes = labelNodes.filter((e) => (e as HTMLElement).style.width === '');
-        const hasWidthLabelNode = labelNodes.filter((e) => (e as HTMLElement).style.width !== '')[0];
-        if (noWidthLabelNodes.length > 0) {
-          noWidthLabelNodes.forEach((e) => {
-            (e as HTMLElement).style.width = `${hasWidthLabelNode?.clientWidth}px`;
-          });
-        }
+        initFormShowControl(value);
       });
     }
     // 字段联动

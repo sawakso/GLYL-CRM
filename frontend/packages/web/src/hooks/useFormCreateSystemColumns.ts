@@ -794,6 +794,12 @@ export default async function useFormCreateSystemColumns(
       },
       sortOrder: false,
       sorter: columnsSorter,
+      render: (row: any) => {
+        const v = row.createTime;
+        if (v === undefined || v === null || v === '' || v === 0) return '-';
+        const d = dayjs(v);
+        return d.isValid() ? d.format('YYYY-MM-DD HH:mm:ss') : v;
+      },
     },
     {
       title: t('common.updateUserName'),
@@ -815,6 +821,12 @@ export default async function useFormCreateSystemColumns(
       },
       sortOrder: false,
       sorter: columnsSorter,
+      render: (row: any) => {
+        const v = row.updateTime;
+        if (v === undefined || v === null || v === '' || v === 0) return '-';
+        const d = dayjs(v);
+        return d.isValid() ? d.format('YYYY-MM-DD HH:mm:ss') : v;
+      },
     },
   ];
   return {

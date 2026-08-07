@@ -515,19 +515,23 @@ export function openDocumentLink(url: string) {
  * @param type 类型
  */
 export function formatTimeValue(value: string | number, type?: FormCreateFieldDateType) {
-  if (value) {
-    const date = dayjs(Number(value));
-    switch (type) {
-      case 'month':
-        return date.format('YYYY-MM');
-      case 'date':
-        return date.format('YYYY-MM-DD');
-      case 'datetime':
-      default:
-        return date.format('YYYY-MM-DD HH:mm:ss');
-    }
+  if (value === undefined || value === null || value === '') {
+    return '-';
   }
-  return '-';
+  // 优先按时间戳(毫秒)解析; 若 value 已是格式化字符串(Number 为 NaN), 回退为直接 dayjs 解析
+  const date = dayjs(Number(value)).isValid() ? dayjs(Number(value)) : dayjs(value);
+  if (!date.isValid()) {
+    return '-';
+  }
+  switch (type) {
+    case 'month':
+      return date.format('YYYY-MM');
+    case 'date':
+      return date.format('YYYY-MM-DD');
+    case 'datetime':
+    default:
+      return date.format('YYYY-MM-DD HH:mm:ss');
+  }
 }
 
 /**

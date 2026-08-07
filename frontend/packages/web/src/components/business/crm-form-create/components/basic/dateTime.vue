@@ -22,7 +22,7 @@
     <n-divider v-if="props.isSubTableField && !props.isSubTableRender" class="!my-0" />
     <n-date-picker
       v-model:value="value"
-      :type="props.fieldConfig.dateType"
+      :type="pickerType"
       :placeholder="props.fieldConfig.placeholder || t('common.pleaseInput')"
       :disabled="props.fieldConfig.editable === false || props.disabled || !!props.fieldConfig.resourceFieldId"
       class="w-full"
@@ -60,6 +60,15 @@
 
   const value = defineModel<null | number | [number, number]>('value', {
     default: null,
+  });
+
+  // n-date-picker 只支持 date/datetime/daterange/datetimerange；字段配置 dateType 可能为
+  // undefined 或 month 等无效值，需兜底为 datetime，否则 naive-ui 报 type wrong 并崩溃
+  const pickerType = computed<'date' | 'datetime' | 'daterange' | 'datetimerange'>(() => {
+    const t = props.fieldConfig.dateType as string;
+    return ['date', 'datetime', 'daterange', 'datetimerange'].includes(t)
+      ? (t as 'date' | 'datetime' | 'daterange' | 'datetimerange')
+      : 'datetime';
   });
 
   watch(

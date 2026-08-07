@@ -139,10 +139,12 @@ export default function useTable<T>(
   ): CrmTableDataItem<T> {
     try {
       if (item.updateTime) {
-        item.updateTime = dayjs(item.updateTime).format('YYYY-MM-DD HH:mm:ss');
+        const du = dayjs(item.updateTime);
+        item.updateTime = du.isValid() ? du.format('YYYY-MM-DD HH:mm:ss') : item.updateTime;
       }
       if (item.createTime) {
-        item.createTime = dayjs(item.createTime).format('YYYY-MM-DD HH:mm:ss');
+        const dc = dayjs(item.createTime);
+        item.createTime = dc.isValid() ? dc.format('YYYY-MM-DD HH:mm:ss') : item.createTime;
       }
       if (dataTransform) {
         item = dataTransform(item, originalData);
