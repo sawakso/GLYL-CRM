@@ -99,25 +99,81 @@ public class DataScopeService {
             return deptDataPermission;
         }
 
-        List<RolePermissionDTO> userDeptRoles = dataScopeRoleMap.get(RoleDataScope.DEPT_AND_CHILD.name());
-        List<RolePermissionDTO> customDeptRoles = dataScopeRoleMap.get(RoleDataScope.DEPT_CUSTOM.name());
-
-        if (CollectionUtils.isEmpty(userDeptRoles)
-                && CollectionUtils.isEmpty(customDeptRoles)) {
-            // 没有部门角色权限时, 检查用户是否为部门负责人: 是则按负责部门(含子部门)查询
-            List<String> commanderDeptIds = getCommanderDeptIds(userId, orgId);
-            if (CollectionUtils.isNotEmpty(commanderDeptIds)) {
-                DeptDataPermissionDTO commanderPermission = new DeptDataPermissionDTO();
-                List<BaseTreeNode> tree = departmentService.getTree(orgId);
-                commanderPermission.getDeptIds().addAll(getDeptIdsWithChild(tree, new HashSet<>(commanderDeptIds)));
-                return commanderPermission;
-            }
-            // 如果没有部门权限,则默认只能查看自己的数据
-            deptDataPermission.setSelf(true);
-            return deptDataPermission;
+        // 角色部门权限(自己所在部门及其子部门 + 自定义指定部门)
+        boolean hasDeptRole = hasDataScopePermission(dataScopeRoleMap, RoleDataScope.DEPT_AND_CHILD.name(), permission)
+                || hasDataScopePermission(dataScopeRoleMap, RoleDataScope.DEPT_CUSTOM.name(), permission);
+        if (hasDeptRole) {
+            DeptDataPermissionDTO rolePerm = getDeptDataPermissionForDept(userId, orgId, dataScopeRoleMap, permission);
+            deptDataPermission.getDeptIds().addAll(rolePerm.getDeptIds());
         }
 
-        return getDeptDataPermissionForDept(userId, orgId, dataScopeRoleMap, permission);
+        // 部门负责人权限(负责部门及其子部门): 始终作为"追加"权限生效, 不因角色权限而覆盖。
+        // 避免部门负责人同时拥有 DEPT_AND_CHILD 等角色时, 只能看到自己所在部门而看不到负责部门。
+        List<String> commanderDeptIds = getCommanderDeptIds(userId, orgId);
+        if (CollectionUtils.isNotEmpty(commanderDeptIds)) {
+            List<BaseTreeNode> tree = departmentService.getTree(orgId);
+            deptDataPermission.getDeptIds().addAll(getDeptIdsWithChild(tree, new HashSet<>(commanderDeptIds)));
+        }
+
+        // 直属上级权限: 追加所有直接/间接下级(以他们为负责人的数据, 上级可见)
+        List<String> subordinateIds = getSubordinateUserIds(userId, orgId);
+        if (CollectionUtils.isNotEmpty(subordinateIds)) {
+            deptDataPermission.getOwnerIds().addAll(subordinateIds);
+        }
+
+        // 既无角色部门权限、又不是部门负责人/直属上级 => 默认只能查看自己的数据
+        if (CollectionUtils.isEmpty(deptDataPermission.getDeptIds())
+                && CollectionUtils.isEmpty(deptDataPermission.getOwnerIds())) {
+            deptDataPermission.setSelf(true);
+        }
+        return deptDataPermission;
+    }
+
+    /**
+     * 获取用户的所有直接/间接下级用户ID集合(基于 sys_organization_user.supervisor_id 递归)。
+     * <p>直属上级可以查看所有下级(含下级的下级)名下负责的数据。</p>
+     *
+     * @param userId 上级用户ID
+     * @param orgId  组织ID
+     * @return 下级用户ID集合(不含自己, 可能为空)
+     */
+    public List<String> getSubordinateUserIds(String userId, String orgId) {
+        try {
+            OrganizationUser example = new OrganizationUser();
+            example.setOrganizationId(orgId);
+            List<OrganizationUser> users = organizationUserMapper.select(example);
+            if (CollectionUtils.isEmpty(users)) {
+                return List.of();
+            }
+            // supervisor_id -> 直接下级 user_id 列表
+            Map<String, List<String>> supervisorChildrenMap = new HashMap<>();
+            for (OrganizationUser u : users) {
+                if (u.getUserId() == null || StringUtils.isBlank(u.getSupervisorId())) {
+                    continue;
+                }
+                supervisorChildrenMap.computeIfAbsent(u.getSupervisorId(), k -> new ArrayList<>()).add(u.getUserId());
+            }
+            // BFS 递归取全部直接/间接下级
+            Set<String> subordinates = new LinkedHashSet<>();
+            Deque<String> queue = new ArrayDeque<>();
+            queue.add(userId);
+            while (!queue.isEmpty()) {
+                String current = queue.poll();
+                List<String> children = supervisorChildrenMap.get(current);
+                if (CollectionUtils.isEmpty(children)) {
+                    continue;
+                }
+                for (String child : children) {
+                    if (subordinates.add(child)) {
+                        queue.add(child);
+                    }
+                }
+            }
+            return new ArrayList<>(subordinates);
+        } catch (Exception e) {
+            // 直属上级查询异常不影响主流程, 回退为无下级
+            return List.of();
+        }
     }
 
     /**
@@ -297,15 +353,17 @@ public class DataScopeService {
             return true;
         }
 
-        if (CollectionUtils.isNotEmpty(deptDataPermission.getDeptIds())) {
+        if (CollectionUtils.isNotEmpty(deptDataPermission.getDeptIds())
+                || CollectionUtils.isNotEmpty(deptDataPermission.getOwnerIds())) {
             Map<String, UserDeptDTO> userDeptMapByUserIds = baseService.getUserDeptMapByUserIds(owners, orgId);
             for (String owner : owners) {
                 UserDeptDTO customerOwnerDept = userDeptMapByUserIds.get(owner);
-                // 部门权限是否有该客户的权限
-                if (customerOwnerDept == null || !deptDataPermission.getDeptIds().contains(customerOwnerDept.getDeptId())) {
-                    if (!Strings.CS.equals(owner, userId)) {
-                        return false;
-                    }
+                boolean deptOk = customerOwnerDept != null
+                        && deptDataPermission.getDeptIds().contains(customerOwnerDept.getDeptId());
+                boolean ownerOk = deptDataPermission.getOwnerIds().contains(owner);
+                // 部门权限或直属上级(下级)权限任一满足即可
+                if (!deptOk && !ownerOk && !Strings.CS.equals(owner, userId)) {
+                    return false;
                 }
             }
             return true;

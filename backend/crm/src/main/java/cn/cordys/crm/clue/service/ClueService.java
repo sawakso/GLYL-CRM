@@ -922,9 +922,11 @@ public class ClueService {
     public ResourceTabEnableDTO getTabEnableConfig(String userId, String organizationId) {
         List<RolePermissionDTO> rolePermissions = permissionCache.getRolePermissions(userId, organizationId);
         ResourceTabEnableDTO tabConfig = PermissionUtils.getTabEnableConfig(userId, PermissionConstants.CLUE_MANAGEMENT_READ, rolePermissions);
-        // 部门负责人: 即使角色无部门数据权限, 也应能看到"部门线索"tab
+        // 部门负责人或直属上级(有下级): 即使角色无部门数据权限, 也应能看到"部门线索"tab
+        // (直属上级通过 ownerIds 能看到下级名下线索, 详情见 DataScopeService.getSubordinateUserIds)
+        boolean hasSubordinates = CollectionUtils.isNotEmpty(dataScopeService.getSubordinateUserIds(userId, organizationId));
         if (!Boolean.TRUE.equals(tabConfig.getDept())
-                && CollectionUtils.isNotEmpty(dataScopeService.getCommanderDeptIds(userId, organizationId))) {
+                && (CollectionUtils.isNotEmpty(dataScopeService.getCommanderDeptIds(userId, organizationId)) || hasSubordinates)) {
             tabConfig.setDept(true);
         }
         return tabConfig;

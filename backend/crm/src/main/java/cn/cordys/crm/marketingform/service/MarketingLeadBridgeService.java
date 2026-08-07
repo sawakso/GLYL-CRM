@@ -14,7 +14,10 @@ import cn.cordys.context.OrganizationContext;
 import cn.cordys.crm.clue.domain.Clue;
 import cn.cordys.crm.clue.domain.ClueField;
 import cn.cordys.crm.clue.domain.CluePool;
+import cn.cordys.crm.clue.constants.BizStatusEnum;
 import cn.cordys.crm.clue.constants.ClueStatus;
+import cn.cordys.crm.clue.constants.LeadsStageEnum;
+import cn.cordys.crm.clue.constants.LifeStatusEnum;
 import cn.cordys.crm.clue.service.ClueFieldService;
 import cn.cordys.crm.clue.service.CluePoolAssignRuleService;
 import cn.cordys.crm.clue.service.CluePoolService;
@@ -531,9 +534,11 @@ public class MarketingLeadBridgeService {
         // 来源: 自动关联到市场表单的名字, 无需用户填写 (ensureSourceOption 已把表单名加入来源选项, 保证正常显示)
         clue.setSource(form.getName());
         // ============ 市场表单回流默认值 (即使表单未映射也自动填入) ============
-        clue.setLeadsStage("新线索");           // 线索进度 (列表显示)
-        clue.setBizStatus("新建");              // 线索状态
-        clue.setLifeStatus("活跃");             // 生命状态
+        // 注意: 必须存枚举 key (如 "NEW"/"ACTIVE"), 不能存中文 label。
+        // 前端用 optionMap(id=枚举key) 匹配显示 label, 存中文会导致列表显示"选项不存在"。
+        clue.setLeadsStage(LeadsStageEnum.NEW.getKey());     // 线索进度 (列表显示)
+        clue.setBizStatus(BizStatusEnum.NEW.getKey());       // 线索状态
+        clue.setLifeStatus(LifeStatusEnum.ACTIVE.getKey());  // 生命状态
 
         applyFormToClue(clue, form, fieldMapping, formValues);
 
@@ -590,15 +595,44 @@ public class MarketingLeadBridgeService {
                 case "url" -> clue.setUrl(strValue);
                 case "source" -> clue.setSource(strValue);
                 case "owner" -> clue.setOwner(strValue);
-                case "leadsStage" -> clue.setLeadsStage(strValue);
-                case "bizStatus" -> clue.setBizStatus(strValue);
-                case "lifeStatus" -> clue.setLifeStatus(strValue);
+                case "leadsStage" -> clue.setLeadsStage(normalizeEnumKey(strValue,
+                        LeadsStageEnum::getNameByKey, LeadsStageEnum::getKeyByName, LeadsStageEnum.NEW.getKey()));
+                case "bizStatus" -> clue.setBizStatus(normalizeEnumKey(strValue,
+                        BizStatusEnum::getNameByKey, BizStatusEnum::getKeyByName, BizStatusEnum.NEW.getKey()));
+                case "lifeStatus" -> clue.setLifeStatus(normalizeEnumKey(strValue,
+                        LifeStatusEnum::getNameByKey, LifeStatusEnum::getKeyByName, LifeStatusEnum.ACTIVE.getKey()));
                 case "remark" -> clue.setRemark(strValue);
                 default -> log.debug("字段映射 {} 未在 applyClueField 白名单中, 跳过 (可走 EAV)", fieldName);
             }
         } catch (Exception e) {
             log.warn("设置 Clue 字段 {} 失败: {}", fieldName, e.getMessage());
         }
+    }
+
+    /**
+     * 归一化枚举字段值: 兼容"已是 key"(如 NEW) 与"中文 label"(如 新线索) 两种入参, 统一返回枚举 key。
+     * 表单/市场表单可能直接把中文 label 映射进来, 若不转回 key, 前端 optionMap(id=key) 匹配不上而显示"选项不存在"。
+     *
+     * @param value      外部传入值
+     * @param keyToName  枚举 key -> name (若入参是合法 key 则返回非 null)
+     * @param nameToKey  name -> key 反查
+     * @param defaultKey 无法识别时的兜底 key
+     */
+    private static String normalizeEnumKey(String value,
+                                           java.util.function.Function<String, String> keyToName,
+                                           java.util.function.Function<String, String> nameToKey,
+                                           String defaultKey) {
+        if (StringUtils.isBlank(value)) {
+            return defaultKey;
+        }
+        String v = value.trim();
+        // 已是合法 key (如 "NEW")
+        if (keyToName.apply(v) != null) {
+            return v;
+        }
+        // 是中文 label (如 "新线索") 则反查 key
+        String key = nameToKey.apply(v);
+        return key != null ? key : defaultKey;
     }
 
     /** 把任意值转为字符串列表 (List 直取, 逗号分隔字符串拆分, 标量包装), 供 products 等列表字段使用 */

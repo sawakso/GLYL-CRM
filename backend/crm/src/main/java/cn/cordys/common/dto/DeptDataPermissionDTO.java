@@ -35,4 +35,8 @@ public class DeptDataPermissionDTO {
      * 可查看的部门Id
      */
     private Set<String> deptIds = new HashSet<>();
+    /**
+     * 直属上级权限: 可查看的负责人用户ID集合(自己的所有直接/间接下级)
+     */
+    private Set<String> ownerIds = new HashSet<>();
 }

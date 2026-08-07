@@ -137,14 +137,19 @@ export default function useTable<T>(
     item: CrmTableDataItem<T>,
     originalData?: CommonList<CrmTableDataItem<T>>
   ): CrmTableDataItem<T> {
-    if (item.updateTime) {
-      item.updateTime = dayjs(item.updateTime).format('YYYY-MM-DD HH:mm:ss');
-    }
-    if (item.createTime) {
-      item.createTime = dayjs(item.createTime).format('YYYY-MM-DD HH:mm:ss');
-    }
-    if (dataTransform) {
-      item = dataTransform(item, originalData);
+    try {
+      if (item.updateTime) {
+        item.updateTime = dayjs(item.updateTime).format('YYYY-MM-DD HH:mm:ss');
+      }
+      if (item.createTime) {
+        item.createTime = dayjs(item.createTime).format('YYYY-MM-DD HH:mm:ss');
+      }
+      if (dataTransform) {
+        item = dataTransform(item, originalData);
+      }
+    } catch (e) {
+      // 单条数据转换失败不应清空整个列表; 保留原始数据展示, 避免迁移/特殊数据导致整表空白
+      console.error('[useTable processRecordItem] transform error, id=', (item as any)?.id, e);
     }
     return item;
   }

@@ -37,4 +37,14 @@ public enum BizStatusEnum {
         BizStatusEnum e = ofKey(key);
         return e != null ? e.name : null;
     }
+
+    /** 按名称(name)反查 key, 用于把市场表单等外部传入的中文标签归一化为枚举 key。 */
+    public static String getKeyByName(String name) {
+        for (BizStatusEnum e : values()) {
+            if (Strings.CS.equals(name, e.name)) {
+                return e.key;
+            }
+        }
+        return null;
+    }
 }

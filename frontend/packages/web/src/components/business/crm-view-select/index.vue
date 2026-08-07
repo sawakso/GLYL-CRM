@@ -205,6 +205,17 @@
 
   const { tabList, initTab } = useHiddenTab(props.type);
 
+  // 强制纠正默认视图: 有部门视图权限的用户(部门负责人/直属上级),
+  // 应停留在能看到下级/部门数据的视图(部门线索/全部线索), 而不是"我的线索"
+  // (用 watch 确保 tabList 异步加载完成后也能触发纠正, 避免 onMounted 时序问题)
+  const forceToDeptView = () => {
+    const canViewDept = tabList.value.some((tab) => tab.name === 'DEPARTMENT');
+    if (canViewDept && activeTab.value !== 'DEPARTMENT' && activeTab.value !== 'ALL' && activeTab.value) {
+      activeTab.value = 'DEPARTMENT';
+    }
+  };
+  watch(tabList, forceToDeptView, { immediate: true });
+
   onMounted(async () => {
     await initTab();
     await viewStore.loadInternalViews(props.type, tabList.value as TabPaneProps[]);
@@ -214,13 +225,17 @@
       const lastTab = await viewStore.getActiveView(props.type);
       const canViewDept = tabList.value.some((tab) => tab.name === 'DEPARTMENT');
       if (lastTab && sortData.value.find((item) => item.id === lastTab)) {
-        // 部门负责人(有部门视图)即使记住"我的线索", 也默认切到"部门线索", 避免看不到本部门数据
-        activeTab.value = canViewDept && lastTab === 'SELF' ? 'DEPARTMENT' : lastTab;
+        // 部门负责人/直属上级(有部门视图)即使记住"我的线索"或自定义视图, 也默认切到"部门线索",
+        // 避免落在看不到下级/部门数据的视图(如 SELF 只显示自己名下数据)
+        const stayInDeptView = lastTab === 'DEPARTMENT' || lastTab === 'ALL';
+        activeTab.value = canViewDept && !stayInDeptView ? 'DEPARTMENT' : lastTab;
       } else {
-        // 默认优先选"部门/全部"视图(能看更多数据), 避免落在"我的线索"看不到本部门
+        // 默认优先选"部门/全部"视图(能看更多数据), 避免落在"我的线索"看不到下级/部门数据
         const preferred = ['DEPARTMENT', 'ALL'].find((id) => sortData.value.find((item) => item.id === id));
         activeTab.value = preferred || tags.value[0]?.id;
       }
+      // 再次强制纠正 (兜底, 防止 sortData 时序导致 preferred 选了 SELF 之外的值)
+      forceToDeptView();
     });
   });
 

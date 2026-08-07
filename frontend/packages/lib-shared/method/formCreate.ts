@@ -1,8 +1,8 @@
-import type { CommonList, ModuleField } from '../models/common';
 import { FieldTypeEnum } from '../enums/formDesignEnum';
-import type { FormCreateField, FormDetail } from '@cordys/web/src/components/business/crm-form-create/types';
-import { formatTimeValue, getCityPath, getIndustryPath } from './index';
 import { useI18n } from '../hooks/useI18n';
+import type { CommonList, ModuleField } from '../models/common';
+import { formatTimeValue, getCityPath, getIndustryPath } from './index';
+import type { FormCreateField, FormDetail } from '@cordys/web/src/components/business/crm-form-create/types';
 
 export const linkAllAcceptTypes = [FieldTypeEnum.INPUT, FieldTypeEnum.TEXTAREA];
 export const dataSourceTypes = [FieldTypeEnum.DATA_SOURCE, FieldTypeEnum.DATA_SOURCE_MULTIPLE];
@@ -364,15 +364,15 @@ export function transformData({
       });
     }
     if (field.businessKey && !field.resourceFieldId) {
-      const fieldId = field.businessKey;
-      const options = originalData?.optionMap?.[fieldId]?.map((e: any) => ({
+      const bizKey = field.businessKey;
+      const options = originalData?.optionMap?.[bizKey]?.map((e: any) => ({
         ...e,
         name: e.name || t('common.optionNotExist'),
       }));
-      fieldOptionMap[fieldId] = options || [];
-      if (addressFieldIds.includes(fieldId)) {
+      fieldOptionMap[bizKey] = options || [];
+      if (addressFieldIds.includes(bizKey)) {
         // 地址类型字段，解析代码替换成省市区
-        const addressArr: string[] = item[fieldId]?.split('-')?.filter(Boolean) || [];
+        const addressArr: string[] = item[bizKey]?.split('-')?.filter(Boolean) || [];
         let value = '';
         if (!addressArr.length) {
           value = '-';
@@ -381,56 +381,60 @@ export function transformData({
           const rest = addressArr.filter((e, i) => i > 0).join('-');
           value = rest ? `${getCityPath(country)}-${rest}` : getCityPath(country);
         }
-        businessFieldAttr[fieldId] = value;
-      } else if (industryFieldIds.includes(fieldId)) {
+        businessFieldAttr[bizKey] = value;
+      } else if (industryFieldIds.includes(bizKey)) {
         // 行业类型字段，解析代码替换成行业名称
-        businessFieldAttr[fieldId] = item[fieldId] ? getIndustryPath(item[fieldId] as string) : '-';
-      } else if (timeFieldIds.includes(fieldId)) {
+        businessFieldAttr[bizKey] = item[bizKey] ? getIndustryPath(item[bizKey] as string) : '-';
+      } else if (timeFieldIds.includes(bizKey)) {
         // 时间类型字段，格式化时间显示
-        businessFieldAttr[fieldId] = formatTimeValue(item[fieldId], field.dateType);
+        businessFieldAttr[bizKey] = formatTimeValue(item[bizKey], field.dateType);
       } else if (options && options.length > 0) {
         let name: string | string[] = '';
-        if (item[fieldId] === '' || item[fieldId] === null) {
+        if (item[bizKey] === '' || item[bizKey] === null) {
           name = '-';
-        } else if (dataSourceFieldIds.includes(fieldId)) {
+        } else if (dataSourceFieldIds.includes(bizKey)) {
           // 处理数据源字段，需要赋值为数组
-          if (typeof item[fieldId] === 'string' || typeof item[fieldId] === 'number') {
+          if (typeof item[bizKey] === 'string' || typeof item[bizKey] === 'number') {
             // 单选
-            name = options?.find((e) => e.id === item[fieldId])?.name || t('common.optionNotExist');
+            name = options?.find((e) => e.id === item[bizKey])?.name || t('common.optionNotExist');
           } else {
             // 多选
-            name = options?.filter((e) => item[fieldId]?.includes(e.id)).map((e) => e.name) || [
-              t('common.optionNotExist'),
-            ];
+            name = Array.isArray(item[bizKey])
+              ? options?.filter((e) => item[bizKey]?.includes(e.id)).map((e) => e.name)
+              : [t('common.optionNotExist')];
           }
-        } else if (typeof item[fieldId] === 'string' || typeof item[fieldId] === 'number') {
-          // 若值是单个字符串/数字
-          name = options?.find((e) => e.id === item[fieldId])?.name || t('common.optionNotExist');
+        } else if (
+          typeof item[bizKey] === 'string' ||
+          typeof item[bizKey] === 'number' ||
+          typeof item[bizKey] === 'boolean'
+        ) {
+          // 若值是单个字符串/数字/布尔值
+          name = options?.find((e) => e.id === item[bizKey])?.name || t('common.optionNotExist');
         } else {
           // 若值是数组
-          name = options?.filter((e) => item[fieldId]?.includes(e.id)).map((e) => e.name) || [
-            t('common.optionNotExist'),
-          ];
+          name = Array.isArray(item[bizKey])
+            ? options?.filter((e) => item[bizKey]?.includes(e.id)).map((e) => e.name)
+            : [t('common.optionNotExist')];
           if (Array.isArray(name) && name.length === 0) {
             name = [t('common.optionNotExist')];
           }
         }
         if (!excludeFieldIds?.includes(field.businessKey)) {
-          if (specialBusinessKeyMap[fieldId]) {
+          if (specialBusinessKeyMap[bizKey]) {
             // 处理特殊业务 key 映射关系
-            businessFieldAttr[specialBusinessKeyMap[fieldId]] = name || t('common.optionNotExist');
+            businessFieldAttr[specialBusinessKeyMap[bizKey]] = name || t('common.optionNotExist');
           } else {
-            businessFieldAttr[fieldId] = name || t('common.optionNotExist');
+            businessFieldAttr[bizKey] = name || t('common.optionNotExist');
           }
         }
-        if (fieldId === 'owner') {
+        if (bizKey === 'owner') {
           businessFieldAttr.ownerId = item.owner;
         }
-      } else if (specialBusinessKeyMap[fieldId]) {
+      } else if (specialBusinessKeyMap[bizKey]) {
         // 处理特殊业务 key 映射关系
-        businessFieldAttr[specialBusinessKeyMap[fieldId]] = item[specialBusinessKeyMap[fieldId]];
+        businessFieldAttr[specialBusinessKeyMap[bizKey]] = item[specialBusinessKeyMap[bizKey]];
       }
-      businessFieldAttr[field.id] = businessFieldAttr[fieldId] || item[fieldId];
+      businessFieldAttr[field.id] = businessFieldAttr[bizKey] || item[bizKey];
     }
   });
 
@@ -471,7 +475,9 @@ export function transformData({
           name = [options.find((e) => e.id === field.fieldValue)?.name || t('common.optionNotExist')];
         } else {
           // 多选
-          name = field.fieldValue?.map((e) => options.find((o) => o.id === e)?.name || t('common.optionNotExist'));
+          name = Array.isArray(field.fieldValue)
+            ? field.fieldValue.map((e) => options.find((o) => o.id === e)?.name || t('common.optionNotExist'))
+            : [t('common.optionNotExist')];
         }
       } else if (
         typeof field.fieldValue === 'string' ||
@@ -482,7 +488,9 @@ export function transformData({
         name = options.find((e) => e.id === field.fieldValue)?.name || t('common.optionNotExist');
       } else {
         // 若值是数组
-        name = field.fieldValue?.map((fv) => options.find((e) => e.id === fv)?.name || t('common.optionNotExist'));
+        name = Array.isArray(field.fieldValue)
+          ? field.fieldValue.map((fv) => options.find((e) => e.id === fv)?.name || t('common.optionNotExist'))
+          : [t('common.optionNotExist')];
         if (Array.isArray(name) && name.length === 0) {
           name = [t('common.optionNotExist')];
         }
@@ -498,7 +506,9 @@ export function transformData({
         customFieldAttr[field.fieldId] = field.fieldValue !== '' ? [t('common.optionNotExist')] : ['-'];
       } else {
         // 避免这里返回 [['选项不存在']] 这样的嵌套数组
-        customFieldAttr[field.fieldId] = field.fieldValue?.map((e) => (e !== '' ? t('common.optionNotExist') : '-'));
+        customFieldAttr[field.fieldId] = Array.isArray(field.fieldValue)
+          ? field.fieldValue.map((e) => (e !== '' ? t('common.optionNotExist') : '-'))
+          : [t('common.optionNotExist')];
       }
     } else {
       // 其他类型字段，直接赋值

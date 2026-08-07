@@ -43,16 +43,25 @@
             <property name="sort" value="request.sort"/>
         </include>
 
-        <if test="dataPermission != null and dataPermission.deptIds.size() > 0">
+        <if test="dataPermission != null and (dataPermission.deptIds.size() > 0 or dataPermission.ownerIds.size() > 0)">
             left join sys_organization_user sou on c.owner = sou.user_id
             and (
-                sou.department_id in
-                <foreach collection="dataPermission.deptIds" item="deptId" open="(" close=")" separator=",">
-                    #{deptId}
-                </foreach>
-            <if test="dataPermission.viewId != 'DEPARTMENT'">
-                    or sou.user_id = #{userId}
+            <trim prefix="" suffix="" prefixOverrides="or ">
+                <if test="dataPermission.deptIds.size() > 0">
+                    sou.department_id in
+                    <foreach collection="dataPermission.deptIds" item="deptId" open="(" close=")" separator=",">
+                        #{deptId}
+                    </foreach>
                 </if>
+                <!-- 直属上级在部门视图也应看到自己的数据(与下级数据并列) -->
+                or sou.user_id = #{userId}
+                <if test="dataPermission.ownerIds.size() > 0">
+                    or c.owner in
+                    <foreach collection="dataPermission.ownerIds" item="ownerId" open="(" close=")" separator=",">
+                        #{ownerId}
+                    </foreach>
+                </if>
+            </trim>
             )
         </if>
 
@@ -65,8 +74,9 @@
           and c.owner = #{userId}
         </if>
 
-        <if test="dataPermission != null and dataPermission.deptIds.size() > 0">
-            and (sou.user_id is not null or c.owner is null)
+        <if test="dataPermission != null and (dataPermission.deptIds.size() > 0 or dataPermission.ownerIds.size() > 0)">
+            <!-- 未分配负责人(owner 为空)的线索不向部门负责人/直属上级开放(仅管理员/ALL 可见, 避免跨部门数据越权) -->
+            and sou.user_id is not null
         </if>
 
         <if test="!source and request.keyword != null and request.keyword != ''">
@@ -112,14 +122,24 @@
 
         from clue c
 
-        <if test="dataPermission != null and dataPermission.deptIds.size() > 0">
+        <if test="dataPermission != null and (dataPermission.deptIds.size() > 0 or dataPermission.ownerIds.size() > 0)">
             left join sys_organization_user sou on c.owner = sou.user_id
             and (
-            sou.department_id in
-            <foreach collection="dataPermission.deptIds" item="deptId" open="(" close=")" separator=",">
-                #{deptId}
-            </foreach>
-            or sou.user_id = #{userId}
+            <trim prefix="" suffix="" prefixOverrides="or ">
+                <if test="dataPermission.deptIds.size() > 0">
+                    sou.department_id in
+                    <foreach collection="dataPermission.deptIds" item="deptId" open="(" close=")" separator=",">
+                        #{deptId}
+                    </foreach>
+                </if>
+                or sou.user_id = #{userId}
+                <if test="dataPermission.ownerIds.size() > 0">
+                    or c.owner in
+                    <foreach collection="dataPermission.ownerIds" item="ownerId" open="(" close=")" separator=",">
+                        #{ownerId}
+                    </foreach>
+                </if>
+            </trim>
             )
         </if>
 
@@ -163,8 +183,8 @@
             and c.owner = #{userId}
         </if>
 
-        <if test="dataPermission != null and dataPermission.deptIds.size() > 0">
-            and (sou.user_id is not null or c.owner is null)
+        <if test="dataPermission != null and (dataPermission.deptIds.size() > 0 or dataPermission.ownerIds.size() > 0)">
+            and sou.user_id is not null
         </if>
 
         <if test="request.viewId == 'CUSTOMER_TRANSITION'">
@@ -547,31 +567,51 @@
         select count(*) from clue c
 
         <if test="request.staticRequest.userField == 'CREATE_USER'">
-            <if test="request.dataPermission != null and request.dataPermission.deptIds.size() > 0">
+            <if test="request.dataPermission != null and (request.dataPermission.deptIds.size() > 0 or request.dataPermission.ownerIds.size() > 0)">
                 join sys_organization_user sou on c.create_user = sou.user_id
                 and (
-                sou.department_id in
-                <foreach collection="request.dataPermission.deptIds" item="deptId" open="(" close=")" separator=",">
-                    #{deptId}
-                </foreach>
-                <if test="request.dataPermission.viewId == 'ALL'">
-                    or sou.user_id = #{request.userId}
-                </if>
+                <trim prefix="" suffix="" prefixOverrides="or ">
+                    <if test="request.dataPermission.deptIds.size() > 0">
+                        sou.department_id in
+                        <foreach collection="request.dataPermission.deptIds" item="deptId" open="(" close=")" separator=",">
+                            #{deptId}
+                        </foreach>
+                    </if>
+                    <if test="request.dataPermission.viewId == 'ALL'">
+                        or sou.user_id = #{request.userId}
+                    </if>
+                    <if test="request.dataPermission.ownerIds.size() > 0">
+                        or c.create_user in
+                        <foreach collection="request.dataPermission.ownerIds" item="ownerId" open="(" close=")" separator=",">
+                            #{ownerId}
+                        </foreach>
+                    </if>
+                </trim>
                 )
             </if>
         </if>
 
         <if test="request.staticRequest.userField != 'CREATE_USER'">
-            <if test="request.dataPermission != null and request.dataPermission.deptIds.size() > 0">
+            <if test="request.dataPermission != null and (request.dataPermission.deptIds.size() > 0 or request.dataPermission.ownerIds.size() > 0)">
                 join sys_organization_user sou on c.owner = sou.user_id
                 and (
-                sou.department_id in
-                <foreach collection="request.dataPermission.deptIds" item="deptId" open="(" close=")" separator=",">
-                    #{deptId}
-                </foreach>
-                <if test="request.dataPermission.viewId == 'ALL'">
-                    or sou.user_id = #{request.userId}
-                </if>
+                <trim prefix="" suffix="" prefixOverrides="or ">
+                    <if test="request.dataPermission.deptIds.size() > 0">
+                        sou.department_id in
+                        <foreach collection="request.dataPermission.deptIds" item="deptId" open="(" close=")" separator=",">
+                            #{deptId}
+                        </foreach>
+                    </if>
+                    <if test="request.dataPermission.viewId == 'ALL'">
+                        or sou.user_id = #{request.userId}
+                    </if>
+                    <if test="request.dataPermission.ownerIds.size() > 0">
+                        or c.owner in
+                        <foreach collection="request.dataPermission.ownerIds" item="ownerId" open="(" close=")" separator=",">
+                            #{ownerId}
+                        </foreach>
+                    </if>
+                </trim>
                 )
             </if>
         </if>
