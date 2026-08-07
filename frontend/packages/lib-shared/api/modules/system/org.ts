@@ -1,4 +1,3 @@
-import type { CrmTreeNodeData } from '@cordys/web/src/components/pure/crm-tree/type';
 import type { CordysAxios } from '@lib/shared/api/http/Axios';
 import {
   addDepartmentUrl,
@@ -7,15 +6,16 @@ import {
   batchEnableUserUrl,
   batchResetPasswordUrl,
   checkDeleteDepartmentUrl,
+  CheckSyncUrl,
   checkSyncUserFromThirdUrl,
   deleteDepartmentUrl,
   deleteUserCheckUrl,
   deleteUserUrl,
-  getDepartmentTreeUrl,
   getAdminOptionsUrl,
+  getDepartmentTreeUrl,
   getOrgDepartmentUserUrl,
-  CheckSyncUrl,
   getRoleOptionsUrl,
+  getUserCardUrl,
   getUserDetailUrl,
   getUserListUrl,
   getUserOptionsUrl,
@@ -37,10 +37,13 @@ import type {
   MemberParams,
   SetCommanderParams,
   UpdateDepartmentItemParams,
+  UserCardInfo,
   UserTableQueryParams,
   ValidateInfo,
 } from '@lib/shared/models/system/org';
 import type { DeptUserTreeNode } from '@lib/shared/models/system/role';
+
+import type { CrmTreeNodeData } from '@cordys/web/src/components/pure/crm-tree/type';
 
 export default function useProductApi(CDR: CordysAxios) {
   // 组织架构-部门树查询
@@ -101,6 +104,11 @@ export default function useProductApi(CDR: CordysAxios) {
   // 用户(员工)-员工详情
   function getUserDetail(userId: string) {
     return CDR.get<MemberParams>({ url: `${getUserDetailUrl}/${userId}` });
+  }
+
+  // 用户(员工)-简要卡片信息(点击姓名/头像悬浮展示)
+  function getUserCard(userId: string) {
+    return CDR.get<UserCardInfo>({ url: `${getUserCardUrl}/${userId}` });
   }
 
   // 用户(员工)-批量启用|禁用
@@ -185,6 +193,7 @@ export default function useProductApi(CDR: CordysAxios) {
     updateUser,
     getUserList,
     getUserDetail,
+    getUserCard,
     batchToggleStatusUser,
     batchResetUserPassword,
     resetUserPassword,

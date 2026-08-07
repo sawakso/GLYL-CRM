@@ -365,6 +365,10 @@ export function transformData({
     }
     if (field.businessKey && !field.resourceFieldId) {
       const bizKey = field.businessKey;
+      // 保留成员/用户字段的原始 userId, 供"点击姓名显示用户卡片"等场景使用 (名字会被 options 转换为姓名, 但 userId 需要单独保留)
+      if (memberFieldIds.includes(bizKey) && !Array.isArray(item[bizKey])) {
+        businessFieldAttr[`${bizKey}Id`] = item[bizKey];
+      }
       const options = originalData?.optionMap?.[bizKey]?.map((e: any) => ({
         ...e,
         name: e.name || t('common.optionNotExist'),

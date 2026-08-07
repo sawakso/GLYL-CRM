@@ -9,6 +9,7 @@ import cn.cordys.crm.system.domain.User;
 import cn.cordys.crm.system.domain.UserExtend;
 import cn.cordys.crm.system.domain.UserRole;
 import cn.cordys.crm.system.dto.ScopeNameDTO;
+import cn.cordys.crm.system.dto.UserCardDTO;
 import cn.cordys.crm.system.dto.UserSimple;
 import cn.cordys.crm.system.mapper.ExtUserExtendMapper;
 import cn.cordys.mybatis.BaseMapper;
@@ -384,6 +385,104 @@ public class UserExtendService {
 		Map<String, String> avatarMap = userExtends.stream().filter(userExtend -> StringUtils.isNotBlank(userExtend.getAvatar())).collect(Collectors.toMap(UserExtend::getId, UserExtend::getAvatar));
 		List<UserSimple> simples = users.stream().map(user -> new UserSimple(user.getId(), user.getName(), avatarMap.get(user.getId()))).toList();
 		return simples.stream().collect(Collectors.toMap(UserSimple::getId, u -> u));
+	}
+
+	/**
+	 * 获取用户简要卡片信息(点击员工姓名/头像悬浮展示)
+	 *
+	 * @param userId 用户ID
+	 * @param orgId  组织ID
+	 * @return 用户卡片信息, 用户不存在返回 null
+	 */
+	public UserCardDTO getUserCard(String userId, String orgId) {
+		if (StringUtils.isBlank(userId)) {
+			return null;
+		}
+		User user = userMapper.selectByPrimaryKey(userId);
+		if (user == null) {
+			return null;
+		}
+		UserCardDTO card = new UserCardDTO();
+		card.setId(user.getId());
+		card.setName(user.getName());
+		card.setPhone(user.getPhone());
+		card.setEmail(user.getEmail());
+
+		// 头像
+		UserExtend extend = userExtendMapper.selectByPrimaryKey(userId);
+		if (extend != null) {
+			card.setAvatar(extend.getAvatar());
+		}
+
+		// 组织成员信息: 部门/职位/工号/城市/直属上级
+		OrganizationUser orgUser = new OrganizationUser();
+		orgUser.setUserId(userId);
+		orgUser.setOrganizationId(orgId);
+		List<OrganizationUser> orgUsers = organizationUserMapper.select(orgUser);
+		if (!CollectionUtils.isEmpty(orgUsers)) {
+			OrganizationUser ou = orgUsers.getFirst();
+			card.setPosition(ou.getPosition());
+			card.setEmployeeId(ou.getEmployeeId());
+			card.setWorkCity(ou.getWorkCity());
+			card.setSupervisorId(ou.getSupervisorId());
+			card.setDepartmentId(ou.getDepartmentId());
+
+			// 部门名称 & 部门路径(从根到叶子)
+			List<BaseTreeNode> tree = departmentService.getTree(orgId);
+			if (ou.getDepartmentId() != null) {
+				Map<String, String> deptIdNameMap = new HashMap<>();
+				flattenDeptNames(tree, deptIdNameMap);
+				card.setDepartmentName(deptIdNameMap.get(ou.getDepartmentId()));
+				card.setDeptPath(buildDeptPath(tree, ou.getDepartmentId(), deptIdNameMap));
+			}
+		}
+
+		// 直属上级姓名
+		if (StringUtils.isNotBlank(card.getSupervisorId())) {
+			User sup = userMapper.selectByPrimaryKey(card.getSupervisorId());
+			if (sup != null) {
+				card.setSupervisorName(sup.getName());
+			}
+		}
+		return card;
+	}
+
+	/** 递归收集 部门ID -> 部门名称 */
+	private void flattenDeptNames(List<BaseTreeNode> nodes, Map<String, String> deptIdNameMap) {
+		if (CollectionUtils.isEmpty(nodes)) {
+			return;
+		}
+		for (BaseTreeNode node : nodes) {
+			deptIdNameMap.put(node.getId(), node.getName());
+			flattenDeptNames(node.getChildren(), deptIdNameMap);
+		}
+	}
+
+	/** 构建部门路径名称(从根到叶子, 用 / 连接) */
+	private String buildDeptPath(List<BaseTreeNode> tree, String deptId, Map<String, String> deptIdNameMap) {
+		if (deptId == null || CollectionUtils.isEmpty(tree)) {
+			return null;
+		}
+		List<String> pathNames = new ArrayList<>();
+		if (findDeptPath(tree, deptId, pathNames)) {
+			return String.join("/", pathNames);
+		}
+		return deptIdNameMap.get(deptId);
+	}
+
+	/** DFS 找部门路径(根 -> 叶子), 结果存到 pathNames */
+	private boolean findDeptPath(List<BaseTreeNode> nodes, String targetId, List<String> pathNames) {
+		for (BaseTreeNode node : nodes) {
+			pathNames.add(node.getName());
+			if (Strings.CS.equals(node.getId(), targetId)) {
+				return true;
+			}
+			if (findDeptPath(node.getChildren(), targetId, pathNames)) {
+				return true;
+			}
+			pathNames.removeLast();
+		}
+		return false;
 	}
 
 }

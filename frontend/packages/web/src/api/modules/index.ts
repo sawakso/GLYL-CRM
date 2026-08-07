@@ -773,6 +773,7 @@ export const {
   setCommander,
   addDepartment,
   getUserDetail,
+  getUserCard,
   batchEditUser,
   getUserOptions,
   getAdminOptions,

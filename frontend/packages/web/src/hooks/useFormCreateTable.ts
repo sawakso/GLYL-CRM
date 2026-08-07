@@ -11,6 +11,7 @@ import type { FormDesignConfigDetailParams } from '@lib/shared/models/system/mod
 
 import type { CrmDataTableColumn } from '@/components/pure/crm-table/type';
 import useTable from '@/components/pure/crm-table/useTable';
+import CrmUserName from '@/components/pure/crm-user-name/index.vue';
 import {
   getFormConfigApiMap,
   getFormListApiMap,
@@ -405,7 +406,12 @@ export default async function useFormCreateTable(props: FormCreateTableProps) {
                 tooltip: true,
               },
               filedType: field.type,
-              render: (row: any) => row.ownerName || '-',
+              // 负责人: 点击姓名弹出用户简要卡片
+              render: (row: any) =>
+                h(CrmUserName, {
+                  userId: row.ownerId || row.owner || row[`${key}Id`] || row[key],
+                  name: row.ownerName || row[key] || '-',
+                }),
               resourceFieldId: field.resourceFieldId,
             };
           }
@@ -506,6 +512,15 @@ export default async function useFormCreateTable(props: FormCreateTableProps) {
               sorter: !noSorterType.includes(field.type) && !field.resourceFieldId,
               filedType: field.type,
               resourceFieldId: field.resourceFieldId,
+              // 成员(用户)字段: 点击姓名/头像弹出用户简要卡片
+              render:
+                field.type === FieldTypeEnum.MEMBER && !field.resourceFieldId
+                  ? (row: Record<string, any>) =>
+                      h(CrmUserName, {
+                        userId: row[`${key}Id`] || row[key],
+                        name: row[key],
+                      })
+                  : undefined,
             };
           }
           return {

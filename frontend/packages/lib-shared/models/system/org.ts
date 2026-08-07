@@ -1,6 +1,7 @@
+import { SelectedUsersItem } from '@lib/shared/models/system/module';
+
 import type { TableQueryParams } from '../common';
 import { UserInfo } from '../user';
-import { SelectedUsersItem } from '@lib/shared/models/system/module';
 
 // 添加部门
 export interface DepartmentItemParams {
@@ -76,6 +77,23 @@ export interface MemberParams extends BaseMemberInfo {
     name: string;
     userId: string;
   }[];
+}
+
+// 用户简要卡片信息(点击姓名/头像悬浮展示)
+export interface UserCardInfo {
+  id: string;
+  name: string;
+  avatar?: string;
+  phone?: string;
+  email?: string;
+  position?: string;
+  employeeId?: string;
+  workCity?: string;
+  supervisorId?: string;
+  supervisorName?: string;
+  departmentId?: string;
+  departmentName?: string;
+  deptPath?: string;
 }
 
 export interface ErrorMessagesType {

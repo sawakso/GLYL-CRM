@@ -7,6 +7,7 @@ import cn.cordys.common.pager.PageUtils;
 import cn.cordys.common.pager.Pager;
 import cn.cordys.common.utils.ConditionFilterUtils;
 import cn.cordys.context.OrganizationContext;
+import cn.cordys.crm.system.dto.UserCardDTO;
 import cn.cordys.crm.system.dto.request.*;
 import cn.cordys.crm.system.dto.response.RoleListResponse;
 import cn.cordys.crm.system.dto.response.UserImportResponse;
@@ -16,6 +17,7 @@ import cn.cordys.crm.system.dto.response.UserResponse;
 import cn.cordys.crm.system.service.OrganizationConfigService;
 import cn.cordys.crm.system.service.OrganizationUserService;
 import cn.cordys.crm.system.service.RoleService;
+import cn.cordys.crm.system.service.UserExtendService;
 import cn.cordys.security.SessionUtils;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
@@ -43,6 +45,8 @@ public class OrganizationUserController {
     private RoleService roleService;
     @Resource
     private OrganizationConfigService organizationConfigService;
+    @Resource
+    private UserExtendService userExtendService;
 
     @PostMapping("/list")
     @Operation(summary = "用户(员工)-列表查询")
@@ -53,6 +57,11 @@ public class OrganizationUserController {
         return PageUtils.setPageInfo(page, organizationUserService.list(request));
     }
 
+    @GetMapping("/card/{userId}")
+    @Operation(summary = "用户简要卡片信息(点击姓名/头像悬浮展示)")
+    public UserCardDTO getUserCard(@PathVariable String userId) {
+        return userExtendService.getUserCard(userId, OrganizationContext.getOrganizationId());
+    }
 
     @PostMapping("/add")
     @RequiresPermissions(PermissionConstants.SYS_ORGANIZATION_ADD)
